@@ -1,0 +1,6 @@
+*.duckdb
+*.duckdb.wal
+imdb/raw_data/*
+src/__pycache__/*
+imdb/benchmarks/*
+_tmo_profiles/*

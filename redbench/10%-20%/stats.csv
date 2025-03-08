@@ -1,0 +1,4 @@
+workload_type,redset_version,user_id,instance_id,number_of_queries,query_repetition_rate,n_distinct_num_joins,n_distinct_readsets,n_occurrences_step_2,n_occurrences_step_5,n_occurrences_step_3_to_6,n_occurrences_step_3_to_7,n_occurrences_step_4_to_6,n_occurrences_step_4_to_7
+low_variability,provisioned,7,79,20,0.150,2,1,16,1,0,0,0,0
+mid_variability,provisioned,92,79,8,0.125,3,3,4,3,0,0,0,0
+high_variability,provisioned,7,7,814,0.181,16,126,102,24,164,0,377,0

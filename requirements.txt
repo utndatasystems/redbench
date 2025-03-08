@@ -1,0 +1,5 @@
+duckdb==1.2.1
+pandas==2.2.3
+matplotlib==3.10.0
+prettytable==3.15.1
+tqdm==4.67.1

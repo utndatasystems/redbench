@@ -1,0 +1,6 @@
+filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id
+imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,1,6,356496
+imdb/benchmarks/ceb/10a/7bcc6d0a7d4f71732a63dd7ed1fa90b920521629.sql,2,15,222525
+imdb/benchmarks/ceb/10a/d4eec8b3940f97bddc1b30930d723b9b1245aee9.sql,2,15,293264
+imdb/benchmarks/ceb/10a/b0fa6a3f8fa1820a4f7be7aeb6b405909834053c.sql,2,15,293546
+imdb/benchmarks/ceb/10a/4f19c56e1f0ccdeca925474a607fb0d9994532ff.sql,2,15,294429

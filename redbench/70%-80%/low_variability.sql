@@ -1,0 +1,17 @@
+PRAGMA enable_profiling='json';
+PRAGMA profile_output='_tmp_profiles/0_profile.json';
+.read imdb/benchmarks/ceb/8a/8a105.sql
+PRAGMA profile_output='_tmp_profiles/1_profile.json';
+.read imdb/benchmarks/ceb/8a/8a22.sql
+PRAGMA profile_output='_tmp_profiles/2_profile.json';
+.read imdb/benchmarks/ceb/8a/8a22.sql
+PRAGMA profile_output='_tmp_profiles/3_profile.json';
+.read imdb/benchmarks/ceb/8a/8a22.sql
+PRAGMA profile_output='_tmp_profiles/4_profile.json';
+.read imdb/benchmarks/ceb/8a/8a22.sql
+PRAGMA profile_output='_tmp_profiles/5_profile.json';
+.read imdb/benchmarks/ceb/8a/8a22.sql
+PRAGMA profile_output='_tmp_profiles/6_profile.json';
+.read imdb/benchmarks/ceb/8a/8a22.sql
+PRAGMA profile_output='_tmp_profiles/7_profile.json';
+.read imdb/benchmarks/ceb/8a/8a105.sql
