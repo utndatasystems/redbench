@@ -16,7 +16,7 @@ For more details on how we generate Redbench, refer to `DETAILS.md`. Summary plo
 
 ## Setup
 
-To unpack the workloads in `workloads/`, i.e., create runnable SQL workloads from the provided CSV files:
+To unpack the workloads, i.e., create runnable SQL workloads from the CSV files provided in `workloads/`:
 
 ```
 pip install -r requirements.txt

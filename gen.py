@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     # Check if the binary is available.
     if not os.path.isfile(args.duckdb_cli):
-        print(f"We couldn\'t find {args.duckdb_cli}. Please install DuckDB and try again.")
+        print(f"Couldn't find {args.duckdb_cli}. Please install DuckDB and try again.")
         sys.exit(-1)
 
     # (Create and) connect to the experiment database

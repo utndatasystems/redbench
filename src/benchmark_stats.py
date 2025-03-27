@@ -131,7 +131,7 @@ class BenchmarkStats:
         )
 
     def _dump_plots(self, benchmark_name, dir_path):
-        stats = self.get(benchmark_name)
+        stats = self.get(benchmark_name, bounds=None)
         benchmark_name = (
             benchmark_name.upper() if benchmark_name != "ceb_job" else "CEB+"
         )

@@ -26,7 +26,7 @@ def parse_args():
 
     # Check whether the binary is available.
     if not os.path.isfile(args.duckdb_cli):
-        print(f"Couldn\'t find {args.duckdb_cli}. Please install DuckDB and try again.")
+        print(f"Couldn't find {args.duckdb_cli}. Please install DuckDB and try again.")
         sys.exit(-1)
 
     return args
