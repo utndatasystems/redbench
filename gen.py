@@ -59,7 +59,7 @@ if __name__ == "__main__":
     setup_benchmarks()
 
     # Collect stats about the JOB and CEB queries, and dump plots
-    benchmark_stats = BenchmarkStats(db, verbose=args.show_stats)
+    benchmark_stats = BenchmarkStats(db, override=args.override, verbose=args.show_stats)
     benchmark_stats.setup()
     benchmark_stats.dump_plots()
 

@@ -2,19 +2,22 @@ import os
 import duckdb
 from collections import defaultdict
 from .utils import *
+from .benchmarks import extract_template_from_filepath
+import threading
+import queue
 
 
+# TODO: Update this
 # Constraints on CEB+JOB queries.
 # This is to ensure that each value of num_joins has a sufficient
 # number of distinct queries and distinct readsets.
-MAX_NUM_JOINS_ALLOWED = 15
-MIN_NUM_JOINS_ALLOWED = 6
+MIN_NUM_JOINS_ALLOWED = 4
+MAX_NUM_JOINS_ALLOWED = 11
 
 
 class BenchmarkStats:
     def __init__(self, db, override=False, verbose=False):
         self.db = db
-        self.imdb_db = duckdb.connect(IMDB_DB_FILEPATH, read_only=True)
         self.override = override
         self.verbose = verbose
 
@@ -37,7 +40,7 @@ class BenchmarkStats:
                 CREATE OR REPLACE TABLE {benchmark_name}_stats (
                     filepath VARCHAR,
                     num_joins INTEGER,
-                    readset VARCHAR
+                    template VARCHAR
                 )
             """
             )
@@ -57,6 +60,9 @@ class BenchmarkStats:
                 self._insert_stats(filepath, stats, benchmark_name)
                 self._insert_stats(filepath, stats, "ceb_job")
 
+        for benchmark_name in ["job", "ceb", "ceb_job"]:
+            self._is_valid(benchmark_name)
+
     def setup(self):
         if not self.override and self._is_setup():
             log("Benchmark stats already set up.")
@@ -65,23 +71,77 @@ class BenchmarkStats:
         self._create_tables()
         self._collect_stats()
 
-    def _process_dir(self, dir_path, query_stats):
+    def _process_file(self, filepath, query_stats, lock):
+        with open(filepath, "r") as file:
+            query = file.read()
+
+        # Get number of joins in the execution plan
+        tmp_query_filepath = f"tmp/{threading.get_ident()}.sql"
+        profile_filepath = f"tmp/{threading.get_ident()}_profile.json"
+        with open(tmp_query_filepath, "w") as file:
+            file.write(f"""
+                PRAGMA enable_profiling='json';
+                PRAGMA profiling_output = '{profile_filepath}';
+                {query};
+            """)
+        os.system(f"duckdb --readonly imdb/db.duckdb < {tmp_query_filepath} > /dev/null")
+        os.remove(tmp_query_filepath)
+
+        with open(profile_filepath, "r") as file:
+            profile = file.read()
+        os.remove(profile_filepath)
+
+        num_joins = profile.count('"operator_type": "HASH_JOIN"') - profile.count('"operator_type": "COLUMN_DATA_SCAN"')
+        
+        stats = {
+            "num_joins": num_joins,
+            "template": extract_template_from_filepath(filepath),
+        }
+        
+        with lock:
+            query_stats[filepath] = stats
+
+    def _worker(self, file_queue, query_stats, lock):
+        while True:
+            try:
+                filepath = file_queue.get_nowait()
+            except queue.Empty:
+                break
+            self._process_file(filepath, query_stats, lock)
+            file_queue.task_done()
+
+    def _process_dir(self, dir_path, query_stats, num_threads=48):
+        os.makedirs("tmp", exist_ok=True)
+
+        file_queue = queue.Queue()
+        lock = threading.Lock()
+
         for filename in os.listdir(dir_path):
-            # Read query
             filepath = os.path.join(dir_path, filename)
-            with open(filepath, "r") as file:
-                query = file.read()
+            file_queue.put(filepath)
 
-            # Execute explain plan query
-            explain_df = self.imdb_db.execute(f"EXPLAIN {query}").fetch_df()
+        threads = []
+        for _ in range(num_threads):
+            thread = threading.Thread(target=self._worker, args=(file_queue, query_stats, lock))
+            thread.start()
+            threads.append(thread)
 
-            # Create stats dict
-            query_stats[filepath] = {
-                "num_joins": sum(
-                    line.count("HASH_JOIN") for line in explain_df["explain_value"]
-                ),
-                "readset": extract_readset_from_query(filepath),
-            }
+        for thread in threads:
+            thread.join()
+
+        os.system("rm -rf tmp")
+
+    def _is_valid(self, benchmark_name):
+        assert self.db.execute(
+            f"SELECT COUNT(*) FROM {benchmark_name}_stats"
+        ).fetchone()[0] > 0, f"Query stats for {benchmark_name} not set up."
+        assert self.db.execute(f"""
+            SELECT COUNT(*)
+            from {benchmark_name}_stats q1, {benchmark_name}_stats q2
+            WHERE
+                q1.template == q2.template AND
+                q1.num_joins != q2.num_joins
+        """).fetchone()[0] == 0, f"Two queries with same template must have same number of joins, benchmark={benchmark_name}."
 
     def _insert_stats(self, filepath, query_stats, benchmark_name):
         self.db.execute(
@@ -90,7 +150,7 @@ class BenchmarkStats:
             VALUES (
                 '{filepath}',
                 {query_stats["num_joins"]},
-                '{query_stats["readset"]}'
+                '{query_stats["template"]}'
             )
         """
         )
@@ -106,7 +166,7 @@ class BenchmarkStats:
         ):
             benchmark_stats[row["filepath"]] = {
                 "num_joins": row["num_joins"],
-                "readset": row["readset"],
+                "template": row["template"],
             }
         return (
             bound_num_joins(benchmark_stats, min_joins=bounds[0], max_joins=bounds[1])
@@ -135,12 +195,12 @@ class BenchmarkStats:
         benchmark_name = (
             benchmark_name.upper() if benchmark_name != "ceb_job" else "CEB+"
         )
-        map_n_joins_to_distinct_readsets = defaultdict(set)
+        map_n_joins_to_templates = defaultdict(set)
         map_n_joins_to_number_of_queries = defaultdict(int)
         for filepath, single_query_stats in stats.items():
-            readset = tuple(sorted(list(extract_readset_from_query(filepath))))
-            map_n_joins_to_distinct_readsets[single_query_stats["num_joins"]].add(
-                readset
+            template = extract_template_from_filepath(filepath)
+            map_n_joins_to_templates[single_query_stats["num_joins"]].add(
+                template
             )
             map_n_joins_to_number_of_queries[single_query_stats["num_joins"]] += 1
 
@@ -154,13 +214,13 @@ class BenchmarkStats:
         )
         self._draw_bar_plot(
             {
-                k: len(map_n_joins_to_distinct_readsets[k])
-                for k in map_n_joins_to_distinct_readsets
+                k: len(map_n_joins_to_templates[k])
+                for k in map_n_joins_to_templates
             },
             "Number of joins",
-            f"Number of distinct readsets",
-            f"Number of distinct readsets in {benchmark_name} per number of joins",
-            os.path.join(dir_path, "distinct_readsets.png"),
+            f"Number of templates",
+            f"Number of templates in {benchmark_name} per number of joins",
+            os.path.join(dir_path, "templates.png"),
         )
 
         log(
@@ -168,7 +228,7 @@ class BenchmarkStats:
             verbose=self.verbose,
         )
         log(
-            f"Number of distinct readsets in {benchmark_name}: {sum(map(len, map_n_joins_to_distinct_readsets.values()))}",
+            f"Number of templates in {benchmark_name}: {len(set(sum(list(map(list, map_n_joins_to_templates.values())), [])))}",
             verbose=self.verbose,
         )
 

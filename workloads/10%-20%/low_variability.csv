@@ -1,6 +1,6 @@
 filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id
-imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,2,6,69718
-imdb/benchmarks/ceb/10a/7bcc6d0a7d4f71732a63dd7ed1fa90b920521629.sql,3,15,133590
-imdb/benchmarks/ceb/10a/d4eec8b3940f97bddc1b30930d723b9b1245aee9.sql,3,15,134226
-imdb/benchmarks/ceb/10a/d4eec8b3940f97bddc1b30930d723b9b1245aee9.sql,3,15,173011
-imdb/benchmarks/ceb/10a/b0fa6a3f8fa1820a4f7be7aeb6b405909834053c.sql,3,15,173782
+imdb/benchmarks/job/6f.sql,2,4,69718
+imdb/benchmarks/job/6d.sql,3,11,133590
+imdb/benchmarks/job/6e.sql,3,11,134226
+imdb/benchmarks/job/6e.sql,3,11,173011
+imdb/benchmarks/job/6a.sql,3,11,173782

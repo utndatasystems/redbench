@@ -1,31 +1,33 @@
 # Redbench Generation
 
 ## Definitions
-* Readset of a query: Set of tables it scans.
+* The readset of a query, called `read_table_ids` in Redset, is the set of distinct tables it scans.
 * Redset user: Defined by a `user_id` and an `instance_id`. In Redset, `instance_id` referes to the cluster's id.
 * Query hash of a Redset query: Hash that we use to decide whether two queries are the same. Redset includes a `feature_fingerprint` column that is a "proxy for query similarity". They warn that this fingerprint might have false positives. We found cases where this fingerprint can be equal for two different queries with different numbers of joins or scans, or different readsets. To correct such discrepancies, we define our own query hash as the combination of `feature_fingerprint`, `num_scans`, `num_joins`, and `readset`.
 * Query repetition rate is defined for a Redset user as the ratio of his queries that have already occured before (based on the query hash). Notice that the repetition rate can never be 100% since the first occurence of a query hash does not count as a repetition.
 
 ## Support Benchmarks
 
-We combine CEB and JOB to have more distinct readsets and query instances to sample from.
+We combine CEB and JOB to have more distinct templates and query instances to sample from.
 
-&nbsp; | Number of query instances | Number of distinct readsets
+&nbsp; | Number of query instances | Number of templates
 --- | --- | ---
-CEB | 13646 | 33
-JOB | 113 | 38
-Total | 13759 | 71
+CEB | 13646 | 16
+JOB | 113 | 33
+Total (CEB+) | 13759 | 49
 
 > [!NOTE]  
 > In the remainder of this document, CEB+ will always refer to the combination of CEB and JOB.
 
-![query instances in CEB+JOB](figures/imdb_benchmarks/ceb_job/query_instances.png) ![distinct readsets in CEB+JOB](figures/imdb_benchmarks/ceb_job/distinct_readsets.png)
+![query instances in CEB+JOB](figures/imdb_benchmarks/ceb_job/query_instances.png) ![distinct templates in CEB+JOB](figures/imdb_benchmarks/ceb_job/templates.png)
 
-Later, while sampling workloads, we will map user queries to CEB+ queries based on their normalized number of joins -> we want to have as many distinct queries and readsets for each possible value of number of joins. Therefore, we only keep queries with number of joins between `6` and `15`. The choice of these values is empirical.
+Later, while sampling workloads, we will map user queries to CEB+ queries based on their normalized number of joins -> we want to have as many distinct templates and query instances for each possible value of number of joins. Therefore, we only keep queries with number of joins between `4` and `11`. The choice of these values is empirical.
 
-→ Remaining benchmark (CEB+) queries: `13567 / 13759` queries.
-
-→ Remaining benchmark (CEB+) distinct readsets: `56 / 71` distinct readsets.
+&nbsp; | Number of remaining query instances | Number of remaining templates
+--- | --- | ---
+CEB | 13014 / 13646 | 14 / 16
+JOB | 101 / 113 | 29 / 33
+Total (CEB+) | 13115 / 13759 | 43 / 49
 
 ## Redset Setup
 Redset is a dataset of customer query metadata, spanning over 3 months and 200 clusters, published by Redshift. Redset comes in two types: `provisioned` and `serverless`. We use the `provisioned` version and prefilter as follows:

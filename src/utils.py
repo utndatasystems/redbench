@@ -21,24 +21,6 @@ ch.setFormatter(formatter)
 LOGGER.addHandler(ch)
 
 
-def extract_readset_from_query(filepath):
-    with open(filepath, "r") as file:
-        sql = " ".join(file.readlines())
-    tokens = list(map(lambda x: x.lower(), sql.split()))
-    tokens = sum(
-        map(lambda x: re.split(r"(,)", x) if not x.startswith("'") else [x], tokens), []
-    )
-    assert "join" not in tokens
-
-    tables = []
-    for idx in range(tokens.index("from"), len(tokens)):
-        if tokens[idx] in (",", "from"):
-            tables.append(tokens[idx + 1])
-        elif tokens[idx] == "where":
-            break
-    return ",".join(sorted(tables))
-
-
 def get_sub_directories(directory):
     return [x[0] for x in os.walk(directory) if x[0] != directory]
 
@@ -50,18 +32,19 @@ def map_num_joins_to_ceb_queries(query_stats):
     return map_n_joins_to_queries
 
 
-def map_num_joins_to_ceb_readsets(query_stats):
+# TODO: We can reuse this in benchmark_stats:dump_plots
+def map_num_joins_to_ceb_templates(query_stats):
     res = defaultdict(list)
     for _, stats in query_stats.items():
-        if stats["readset"] not in res[stats["num_joins"]]:
-            res[stats["num_joins"]].append(stats["readset"])
+        if stats["template"] not in res[stats["num_joins"]]:
+            res[stats["num_joins"]].append(stats["template"])
     return res
 
 
-def map_ceb_readsets_to_ceb_queries(query_stats):
+def map_ceb_template_to_ceb_queries(query_stats):
     res = defaultdict(list)
     for filepath, stats in query_stats.items():
-        res[stats["readset"]].append(filepath)
+        res[stats["template"]].append(filepath)
     return res
 
 
