@@ -114,23 +114,8 @@ class Redset:
                 ), eliminated_users as (
                     select user_key
                     from redset_3
-                    where
-                        (
-                            CASE
-                                WHEN read_table_ids is NULL THEN 0
-                                ELSE (
-                                    LENGTH(read_table_ids)
-                                    - LENGTH(REPLACE(read_table_ids, ',', ''))
-                                    + 1
-                                )
-                            END
-                        ) > num_joins + 1
                     group by user_key
-                    UNION
-                    select user_key
-                    from redset_3
-                    group by user_key
-                    having max(num_joins) == min(num_joins) or max(num_joins) - min(num_joins) > 19
+                    having max(num_joins) == min(num_joins) or max(num_joins) - min(num_joins) > 11
                 )
                 select *
                 from redset_3

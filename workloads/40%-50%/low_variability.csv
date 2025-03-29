@@ -1,11 +1,5 @@
 filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id
-imdb/benchmarks/job/6f.sql,16,4,7050772
-imdb/benchmarks/job/6d.sql,16,4,5530237
-imdb/benchmarks/job/6f.sql,16,4,6243611
-imdb/benchmarks/job/6e.sql,16,4,7443105
-imdb/benchmarks/job/6e.sql,16,4,6300352
-imdb/benchmarks/job/6e.sql,16,4,5747177
-imdb/benchmarks/job/6a.sql,28,11,5708181
-imdb/benchmarks/job/6a.sql,28,11,7297521
-imdb/benchmarks/job/6e.sql,16,4,5564464
-imdb/benchmarks/job/6c.sql,28,11,6721664
+imdb/benchmarks/ceb/10a/b0fa6a3f8fa1820a4f7be7aeb6b405909834053c.sql,1,6,38996
+imdb/benchmarks/ceb/8a/8a458.sql,2,11,295874
+imdb/benchmarks/ceb/8a/8a458.sql,2,11,160228
+imdb/benchmarks/ceb/8a/8a458.sql,2,11,13549

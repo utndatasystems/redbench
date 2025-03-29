@@ -64,12 +64,12 @@ if __name__ == "__main__":
     benchmark_stats.dump_plots()
 
     # Download and prefilter the Redset dataset, and dump stats
-    redset = Redset(db, override=args.override, verbose=args.show_stats)
+    redset = Redset(db, override=True, verbose=args.show_stats)
     redset.setup()
     redset.dump_stats()
 
     # Collect Redset user stats, and dump plots
-    user_stats = UserStats(db, override=args.override)
+    user_stats = UserStats(db, override=True)
     user_stats.setup()
     user_stats.dump_plots()
 

@@ -21,13 +21,13 @@ Total (CEB+) | 13759 | 49
 
 ![query instances in CEB+JOB](figures/imdb_benchmarks/ceb_job/query_instances.png) ![distinct templates in CEB+JOB](figures/imdb_benchmarks/ceb_job/templates.png)
 
-Later, while sampling workloads, we will map user queries to CEB+ queries based on their normalized number of joins -> we want to have as many distinct templates and query instances for each possible value of number of joins. Therefore, we only keep queries with number of joins between `4` and `11`. The choice of these values is empirical.
+Later, while sampling workloads, we will map user queries to CEB+ queries based on their normalized number of joins -> we want to have as many distinct templates and query instances for each possible value of number of joins. Therefore, we only keep queries with number of joins between `6` and `11`. The choice of these values is empirical.
 
 &nbsp; | Number of remaining query instances | Number of remaining templates
 --- | --- | ---
-CEB | 13014 / 13646 | 14 / 16
-JOB | 101 / 113 | 29 / 33
-Total (CEB+) | 13115 / 13759 | 43 / 49
+CEB | 12498 / 13646 | 13 / 16
+JOB | 79 / 113 | 23 / 33
+Total (CEB+) | 12577 / 13759 | 36 / 49
 
 ## Redset Setup
 Redset is a dataset of customer query metadata, spanning over 3 months and 200 clusters, published by Redshift. Redset comes in two types: `provisioned` and `serverless`. We use the `provisioned` version and prefilter as follows:
@@ -44,17 +44,14 @@ Redset is a dataset of customer query metadata, spanning over 3 months and 200 c
     * We only keep the queries from that week.
 3. We take the remaining queries from the previous step, we keep at most the first 1000 queries of each user, sorted by `arrival_timestamp`.
 4. We take the remaining queries from the previous step and exclude:
-    * users having queries where `readset_size > num_joins + 1`.
-        * This occurs when the query contains set operators.
-        * Queries with `readset_size < num_joins + 1` are allowed.
-    * users where `max_num_joins - min_num_joins <= 19`.
+    * users where `max_num_joins - min_num_joins > 11`.
         * The intuition is that if the gap between `min_num_joins` and `max_num_joins` is too big, too many Redset queries with different numbers of joins will be mapped to the same number of joins in CEB+ queries later during workload sampling → risk of overestimating repetition.
     * users where `max_num_joins == min_num_joins`.
         * Later, during the workload sampling, we will need to normalize the number of joins. Equal min and max values prevent us from normalizing (divide by 0).
 
-→ Remaining Redset queries: `46672 / 441.35M` queries.
+→ Remaining Redset queries: `63582 / 441.35M` queries.
 
-→ Remaining Redset users: `328 / 192608` users.
+→ Remaining Redset users: `381 / 192608` users.
 
 > [!NOTE]  
 > In the remainder of this README, Redset will always refer to this prefiltered version.

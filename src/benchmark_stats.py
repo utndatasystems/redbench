@@ -11,7 +11,7 @@ import queue
 # Constraints on CEB+JOB queries.
 # This is to ensure that each value of num_joins has a sufficient
 # number of distinct queries and distinct readsets.
-MIN_NUM_JOINS_ALLOWED = 4
+MIN_NUM_JOINS_ALLOWED = 6
 MAX_NUM_JOINS_ALLOWED = 11
 
 
@@ -191,7 +191,7 @@ class BenchmarkStats:
         )
 
     def _dump_plots(self, benchmark_name, dir_path):
-        stats = self.get(benchmark_name, bounds=None)
+        stats = self.get(benchmark_name)
         benchmark_name = (
             benchmark_name.upper() if benchmark_name != "ceb_job" else "CEB+"
         )
