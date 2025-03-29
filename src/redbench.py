@@ -153,7 +153,9 @@ class Redbench:
         self.ceb_template_to_ceb_queries = map_ceb_template_to_ceb_queries(
             benchmark_stats
         )
-        self.num_joins_to_ceb_templates = map_num_joins_to_ceb_templates(benchmark_stats)
+        self.num_joins_to_ceb_templates = map_num_joins_to_ceb_templates(
+            benchmark_stats
+        )
         for group_id, users_sample in self._sample_users().items():
             sampling_stats = defaultdict(lambda: defaultdict(int))
             for user in users_sample:
@@ -218,7 +220,9 @@ class Redbench:
         readset_to_ceb_template,
     ):
         user_query_hash, num_joins = user_query["query_hash"], user_query["num_joins"]
-        user_query_readset = extract_readset_from_string(user_query) # TODO: Rename function
+        user_query_readset = extract_readset_from_string(
+            user_query
+        )  # TODO: Rename function
         benchmark_query = None
         if (
             user_query_hash in query_hash_to_ceb_query
@@ -230,7 +234,9 @@ class Redbench:
 
             def step_6():
                 benchmark_query = None
-                templates_pool = copy.deepcopy(self.num_joins_to_ceb_templates[num_joins])
+                templates_pool = copy.deepcopy(
+                    self.num_joins_to_ceb_templates[num_joins]
+                )
                 random.shuffle(templates_pool)
                 for ceb_template in templates_pool:
                     # (6): Pick a random, already mapped, CEB+ template with unused query instances
@@ -254,9 +260,7 @@ class Redbench:
 
             # We have already encountered this readset (1)
             if user_query_readset in readset_to_ceb_template:
-                corresponding_ceb_template = readset_to_ceb_template[
-                    user_query_readset
-                ]
+                corresponding_ceb_template = readset_to_ceb_template[user_query_readset]
                 remaining_ceb_query_instances_for_template = (
                     ceb_template_to_unused_queries[corresponding_ceb_template]
                 )
@@ -288,7 +292,9 @@ class Redbench:
                         corresponding_ceb_template = best
                         assert (
                             len(
-                                ceb_template_to_unused_queries[corresponding_ceb_template]
+                                ceb_template_to_unused_queries[
+                                    corresponding_ceb_template
+                                ]
                             )
                             > 0
                         )
@@ -300,9 +306,13 @@ class Redbench:
                             unmapped_templates_list,
                         ) in num_joins_to_unmapped_ceb_templates.items():
                             if corresponding_ceb_template in unmapped_templates_list:
-                                unmapped_templates_list.remove(corresponding_ceb_template)
+                                unmapped_templates_list.remove(
+                                    corresponding_ceb_template
+                                )
                                 count += 1
-                        assert count == 1, f"The same template {corresponding_ceb_template} produces different num_joins"
+                        assert (
+                            count == 1
+                        ), f"The same template {corresponding_ceb_template} produces different num_joins"
 
                         # Add the mapping readset -> CEB+ template
                         readset_to_ceb_template[user_query_readset] = (

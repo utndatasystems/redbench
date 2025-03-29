@@ -149,10 +149,14 @@ def parse_user_key(user_key):
         "instance_id": int(user_key.split("#")[1]),
     }
 
+
 def get_duckdb_version(duckdb_cli):
     import subprocess
+
     try:
-        process = subprocess.run([duckdb_cli, '--version'], capture_output=True, text=True, check=True)
+        process = subprocess.run(
+            [duckdb_cli, "--version"], capture_output=True, text=True, check=True
+        )
         version_str = process.stdout.strip()
         parts = version_str.split()
         return parts[0] if len(parts) > 0 else None

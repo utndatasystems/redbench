@@ -16,10 +16,11 @@ MAX_NUM_JOINS_ALLOWED = 11
 
 
 class BenchmarkStats:
-    def __init__(self, db, override=False, verbose=False):
+    def __init__(self, db, duckdb_cli, override=False, verbose=False):
         self.db = db
         self.override = override
         self.verbose = verbose
+        self.duckdb_cli = duckdb_cli
 
     def _is_setup(self):
         return all(
@@ -79,25 +80,31 @@ class BenchmarkStats:
         tmp_query_filepath = f"tmp/{threading.get_ident()}.sql"
         profile_filepath = f"tmp/{threading.get_ident()}_profile.json"
         with open(tmp_query_filepath, "w") as file:
-            file.write(f"""
+            file.write(
+                f"""
                 PRAGMA enable_profiling='json';
                 PRAGMA profiling_output = '{profile_filepath}';
                 {query};
-            """)
-        os.system(f"duckdb --readonly imdb/db.duckdb < {tmp_query_filepath} > /dev/null")
+            """
+            )
+        os.system(
+            f"{self.duckdb_cli} --readonly imdb/db.duckdb < {tmp_query_filepath} > /dev/null"
+        )
         os.remove(tmp_query_filepath)
 
         with open(profile_filepath, "r") as file:
             profile = file.read()
         os.remove(profile_filepath)
 
-        num_joins = profile.count('"operator_type": "HASH_JOIN"') - profile.count('"operator_type": "COLUMN_DATA_SCAN"')
-        
+        num_joins = profile.count('"operator_type": "HASH_JOIN"') - profile.count(
+            '"operator_type": "COLUMN_DATA_SCAN"'
+        )
+
         stats = {
             "num_joins": num_joins,
             "template": extract_template_from_filepath(filepath),
         }
-        
+
         with lock:
             query_stats[filepath] = stats
 
@@ -122,7 +129,9 @@ class BenchmarkStats:
 
         threads = []
         for _ in range(num_threads):
-            thread = threading.Thread(target=self._worker, args=(file_queue, query_stats, lock))
+            thread = threading.Thread(
+                target=self._worker, args=(file_queue, query_stats, lock)
+            )
             thread.start()
             threads.append(thread)
 
@@ -132,16 +141,24 @@ class BenchmarkStats:
         os.system("rm -rf tmp")
 
     def _is_valid(self, benchmark_name):
-        assert self.db.execute(
-            f"SELECT COUNT(*) FROM {benchmark_name}_stats"
-        ).fetchone()[0] > 0, f"Query stats for {benchmark_name} not set up."
-        assert self.db.execute(f"""
+        assert (
+            self.db.execute(f"SELECT COUNT(*) FROM {benchmark_name}_stats").fetchone()[
+                0
+            ]
+            > 0
+        ), f"Query stats for {benchmark_name} not set up."
+        assert (
+            self.db.execute(
+                f"""
             SELECT COUNT(*)
             from {benchmark_name}_stats q1, {benchmark_name}_stats q2
             WHERE
                 q1.template == q2.template AND
                 q1.num_joins != q2.num_joins
-        """).fetchone()[0] == 0, f"Two queries with same template must have same number of joins, benchmark={benchmark_name}."
+        """
+            ).fetchone()[0]
+            == 0
+        ), f"Two queries with same template must have same number of joins, benchmark={benchmark_name}."
 
     def _insert_stats(self, filepath, query_stats, benchmark_name):
         self.db.execute(
@@ -199,9 +216,7 @@ class BenchmarkStats:
         map_n_joins_to_number_of_queries = defaultdict(int)
         for filepath, single_query_stats in stats.items():
             template = extract_template_from_filepath(filepath)
-            map_n_joins_to_templates[single_query_stats["num_joins"]].add(
-                template
-            )
+            map_n_joins_to_templates[single_query_stats["num_joins"]].add(template)
             map_n_joins_to_number_of_queries[single_query_stats["num_joins"]] += 1
 
         self._draw_bar_plot(
@@ -213,10 +228,7 @@ class BenchmarkStats:
             log_scale_y=True,
         )
         self._draw_bar_plot(
-            {
-                k: len(map_n_joins_to_templates[k])
-                for k in map_n_joins_to_templates
-            },
+            {k: len(map_n_joins_to_templates[k]) for k in map_n_joins_to_templates},
             "Number of joins",
             f"Number of templates",
             f"Number of templates in {benchmark_name} per number of joins",

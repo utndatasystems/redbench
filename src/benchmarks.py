@@ -10,7 +10,7 @@ def extract_template_from_filepath(filepath):
     template = filepath.split("/")[1]
     if benchmark == "job":
         # Get the number as the template (1, 2, 3, ..., 33)
-        return re.match(r'\d+', template).group()
+        return re.match(r"\d+", template).group()
     assert benchmark == "ceb"
     # The folder name is the template (1a, 2a, 2b, ..., 11b)
     return filepath.split("/")[1]

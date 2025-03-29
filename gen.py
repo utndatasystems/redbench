@@ -11,7 +11,9 @@ import argparse
 
 # Fetch the latest duckdb binary
 import os
+
 DEFAULT_DUCKDB_CLI = os.path.expanduser("~/.duckdb/cli/latest/duckdb")
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -26,7 +28,7 @@ def get_args():
         "--duckdb_cli",
         type=str,
         default=DEFAULT_DUCKDB_CLI,
-        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI})."
+        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI}).",
     )
     parser.add_argument(
         "-s",
@@ -59,17 +61,19 @@ if __name__ == "__main__":
     setup_benchmarks()
 
     # Collect stats about the JOB and CEB queries, and dump plots
-    benchmark_stats = BenchmarkStats(db, override=args.override, verbose=args.show_stats)
+    benchmark_stats = BenchmarkStats(
+        db, args.duckdb_cli, override=args.override, verbose=args.show_stats
+    )
     benchmark_stats.setup()
     benchmark_stats.dump_plots()
 
     # Download and prefilter the Redset dataset, and dump stats
-    redset = Redset(db, override=True, verbose=args.show_stats)
+    redset = Redset(db, override=args.override, verbose=args.show_stats)
     redset.setup()
     redset.dump_stats()
 
     # Collect Redset user stats, and dump plots
-    user_stats = UserStats(db, override=True)
+    user_stats = UserStats(db, override=args.override)
     user_stats.setup()
     user_stats.dump_plots()
 

@@ -8,7 +8,7 @@
 
 ## Support Benchmarks
 
-We combine CEB and JOB to have more distinct templates and query instances to sample from.
+We use the IMDb benchmarks CEB and JOB. Both are defined in terms of query templates that can be freely instantiated. We use pre-instantiated versions of CEB and JOB, which we combine together for more distinct templates and query instances to sample from.
 
 &nbsp; | Number of query instances | Number of templates
 --- | --- | ---

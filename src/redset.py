@@ -1,7 +1,10 @@
 from .utils import *
 
 
-REDSET_FILEPATH = "https://s3.amazonaws.com/redshift-downloads/redset/provisioned/full.parquet"
+REDSET_FILEPATH = (
+    "https://s3.amazonaws.com/redshift-downloads/redset/provisioned/full.parquet"
+)
+
 
 class Redset:
     """

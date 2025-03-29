@@ -5,6 +5,7 @@ from src.redbench import WORKLOADS_DIR
 from collections import defaultdict
 import os
 
+
 # Unpack/ inline the workload queries (convert the csv files to runnable sql files)
 def unpack_workloads():
     num_queries = defaultdict(int)
