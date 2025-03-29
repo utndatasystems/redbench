@@ -293,13 +293,16 @@ class Redbench:
                             > 0
                         )
 
-                        # Remove the CEB+ template from the list of unmapped templates for all other num_joins
+                        # Mark the CEB+ template as mapped/ remove it from the unmapped list
+                        count = 0
                         for (
                             _,
                             unmapped_templates_list,
                         ) in num_joins_to_unmapped_ceb_templates.items():
                             if corresponding_ceb_template in unmapped_templates_list:
                                 unmapped_templates_list.remove(corresponding_ceb_template)
+                                count += 1
+                        assert count == 1, f"The same template {corresponding_ceb_template} produces different num_joins"
 
                         # Add the mapping readset -> CEB+ template
                         readset_to_ceb_template[user_query_readset] = (

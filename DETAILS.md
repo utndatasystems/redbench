@@ -80,23 +80,23 @@ The figure shows both ranks on the x- and y-axis for each user in the 20%-30% qu
 ## Workload Sampling
 We want to map each sampled user's query timeline to a sequence of CEB+ queries. To do so, we iterate over the timeline and for each query:
 * `user_query_hash` already seen before -> use the CEB+ query instance mapped to it.
-* `user_query_hash` hash never seen before. We want to build a bijection `user_query_readset <-> ceb+_readset`:
-    * (1) We have already seen `user_query_readset` before, i.e., `user_query_readset` has a `ceb+_readset` mapped to it:
-        * (2) `ceb+_readset` has unused query instances -> use one of its unused query instances.
-        * (3) `ceb+_readset` has no unused query instance -> fallback to (6 or 7).
-    * (4) We haven't seen `user_query_readset` before, i.e., `user_query_readset` has no `ceb+_readset` mapped to it:
+* `user_query_hash` hash never seen before. We want to build a bijection `user_query_readset <-> ceb+_template`:
+    * (1) We have already seen `user_query_readset` before, i.e., `user_query_readset` has a `ceb+_template` mapped to it:
+        * (2) `ceb+_template` has unused query instances -> use one of its unused query instances.
+        * (3) `ceb+_template` has no unused query instance -> fallback to (6 or 7).
+    * (4) We haven't seen `user_query_readset` before, i.e., `user_query_readset` has no `ceb+_template` mapped to it:
 
         `closest_ceb+_queries`: All CEB+ queries with the closest number of joins as the user's query, after normalizing both to values between 0 and 1.
 
-        `closest_ceb+_readsets`: Readsets of the closest CEB+ queries
+        `closest_ceb+_templates`: Templates of the `closest_ceb+_queries`.
 
-        * (5) At least one of the **unmapped** `closest_ceb+_readsets` has unused query instances -> pick the one **with the most number of remaining query instances**, insert the mapping `ceb+_readset <-> user_readset`, and use one of the unused query instances of `ceb+_readset`.
-        * (6) At least one of the already **mapped** `closest_ceb+_readsets` has unused query instances -> pick one **randomly** and use one of its unused query instances.
-        * (7) None of the `closest_ceb+_readsets` has unused query instances -> use one of the query instances in `closest_ceb+_queries`
+        * (5) At least one of the `closest_ceb+_templates` is still **unmapped** -> pick the one with the most number of query instances, insert the mapping `ceb+_template <-> user_readset`, and use one of the unused query instances of `ceb+_template`.
+        * (6) At least one of the already **mapped** `closest_ceb+_templates` has unused query instances -> pick one randomly and use one of its unused query instances.
+        * (7) None of the `closest_ceb+_templates` has unused query instances -> use one of the query instances in `closest_ceb+_queries`
 
 Notice:
 * Steps `(2)` and `(5)` are happy paths.
-* Reaching step `(7)` means that CEB+ doesn't have enough **query instances** to mimic the user's workload. **We never reach this step since CEB+ has enough query instances (13567).**
+* Reaching step `(7)` means that CEB+ doesn't have enough **query instances** to mimic the user's workload.
 * Follwing the path `(3 -> 6)` or `(3 -> 7)` means that some **CEB+ readsets** don't have enough **query instances** to mimic the user's workload.
 * Following the path `(4 -> 6)` means that CEB+ doesn't have enough **distinct readsets** to mimic the user's workload.
 * Statistics on how often we follow each path can be found in `workloads/<group>/stats.csv`.
@@ -110,7 +110,7 @@ Each subdirectory of `workloads/` represents a query repetition group between `0
 Running Redbench boils down to converting the 30 CSV files to SQL files (`setup.py`), running them, and measuring execution times.
 
 ## Future Ideas
-* In steps (5) and (6) of the sampling process, instead of choosing a `ceb+_readset` randomly or based on the number of remaining query instances, we can simulate the sampling process differently to find the optimal choosing strategy to minimze the numbers of time we reach the steps (6) and (7).
+* In steps (5) and (6) of the sampling process, instead of choosing a `ceb+_template` randomly or based on the number of remaining query instances, we can simulate the sampling process differently to find the optimal choosing strategy to minimze the numbers of time we reach the steps (6) and (7).
 * To artificially augment the data, we can partition each user's queries timeline into disjunct blocks of 1000 consecutive queries each. Each block counts as an artifical new user, e.g., for a user with 2003 queries, we will end up with 3 artifical users with 1000, 1000, and 3 queries respectively.
     * But, this might result in overrepresenting original users that have too many queries.
 * The current version of Redbench only considers SELECT queries. For cerain use cases, this might not be enough, e.g., to benchmark caching techniques where updates would invalidate the caches. Redset includes a `write_table_ids` column that we can make use of.
