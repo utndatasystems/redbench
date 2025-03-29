@@ -11,7 +11,9 @@ import argparse
 
 # Fetch the latest duckdb binary
 import os
+
 DEFAULT_DUCKDB_CLI = os.path.expanduser("~/.duckdb/cli/latest/duckdb")
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -26,7 +28,7 @@ def get_args():
         "--duckdb_cli",
         type=str,
         default=DEFAULT_DUCKDB_CLI,
-        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI})."
+        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI}).",
     )
     parser.add_argument(
         "-s",
@@ -59,7 +61,9 @@ if __name__ == "__main__":
     setup_benchmarks()
 
     # Collect stats about the JOB and CEB queries, and dump plots
-    benchmark_stats = BenchmarkStats(db, verbose=args.show_stats)
+    benchmark_stats = BenchmarkStats(
+        db, args.duckdb_cli, override=args.override, verbose=args.show_stats
+    )
     benchmark_stats.setup()
     benchmark_stats.dump_plots()
 
