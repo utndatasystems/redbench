@@ -32,7 +32,6 @@ def map_num_joins_to_ceb_queries(query_stats):
     return map_n_joins_to_queries
 
 
-# TODO: We can reuse this in benchmark_stats:dump_plots
 def map_num_joins_to_ceb_templates(query_stats):
     res = defaultdict(list)
     for _, stats in query_stats.items():
@@ -72,17 +71,14 @@ def get_queries_timeline_for_user(user_key, db):
     )
 
 
-def extract_readset_from_string(user_query):
+def get_readset_from_user_query(user_query):
     if user_query["read_table_ids"] is None:
         return []
     return tuple(sorted(map(int, user_query["read_table_ids"].split(","))))
 
 
 def get_experiment_db():
-    db = duckdb.connect(DB_FILEPATH)
-    db.execute("INSTALL httpfs")
-    db.execute("LOAD httpfs;")
-    return db
+    return duckdb.connect(DB_FILEPATH)
 
 
 def wrap(text, width):

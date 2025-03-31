@@ -29,12 +29,6 @@ def get_args():
         help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI}).",
     )
     parser.add_argument(
-        "-s",
-        "--show-stats",
-        action="store_true",
-        help="Enable this flag to dump extra stats on JOB, CEB, and Redset to stdout.",
-    )
-    parser.add_argument(
         "-o",
         "--override",
         action="store_true",
@@ -54,25 +48,22 @@ if __name__ == "__main__":
     # (Create and) connect to the experiment database
     db = get_experiment_db()
 
-    # Prepare the IMDb benchmarks, and dump stats
+    # Download the IMDb benchmarks and compute query stats
     imdb_benchmarks = IMDbBenchmark(
-        override=args.override,
         duckdb_cli=args.duckdb_cli,
         stats_db=db,
         target_benchmark="ceb_job",
     )
+    imdb_benchmarks.setup(override=args.override)
     imdb_benchmarks.dump_plots()
 
-    # Download and prefilter the Redset dataset, and dump stats
-    redset = Redset(db, override=args.override, verbose=args.show_stats)
-    redset.dump_stats()
-
-    # Collect Redset user stats, and dump plots
-    user_stats = UserStats(db, override=args.override)
-    user_stats.dump_plots()
+    # Download, prefilter, and compute user stats from Redset
+    redset = Redset(db)
+    redset.setup(override=args.override)
+    redset.dump_plots()
 
     # Generate RedBench
-    redbench = Redbench(imdb_benchmarks, db, override=True)
+    redbench = Redbench(imdb_benchmarks, db)
     redbench.generate()
 
     # Unpack Redbench workloads

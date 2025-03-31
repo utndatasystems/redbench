@@ -13,9 +13,8 @@ WORKLOADS_DIR = "workloads"
 
 
 class Redbench:
-    def __init__(self, benchmark, db=None, override=False):
+    def __init__(self, benchmark, db=None):
         self.db = db
-        self.override = override
         self.benchmark = benchmark
 
     def _plot_sampling_decision(
@@ -124,15 +123,14 @@ class Redbench:
             )
         )
 
-    def generate(self):
-        if not self.override and self.exists():
+    def generate(self, override=True):
+        if not override and self.exists():
             log("Redbench already generated.")
             return
         os.system("rm -rf {WORKLOADS_DIR}")
         log("Generating Redbench..")
         benchmark_stats = self.benchmark.get_stats()
         self.num_joins_to_ceb_queries = map_num_joins_to_ceb_queries(benchmark_stats)
-        # TODO: You know what? Stuff like this can be made a lot easier with a good Benchmark class.
         self.ceb_template_to_ceb_queries = map_ceb_template_to_ceb_queries(
             benchmark_stats
         )
@@ -200,9 +198,9 @@ class Redbench:
         readset_to_ceb_template,
     ):
         user_query_hash, num_joins = user_query["query_hash"], user_query["num_joins"]
-        user_query_readset = extract_readset_from_string(
+        user_query_readset = get_readset_from_user_query(
             user_query
-        )  # TODO: Rename function
+        )
         benchmark_query = None
         if (
             user_query_hash in query_hash_to_ceb_query

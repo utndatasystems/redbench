@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 
 class Benchmark(ABC):
     def __init__(self, **kwargs):
-        self.setup(kwargs.get("override", False))
         self.duckdb_cli = kwargs.get("duckdb_cli", None)
         self.stats_db = kwargs.get("stats_db", None)
 

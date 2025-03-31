@@ -20,8 +20,7 @@ JOB_DIR_PATH = "imdb/benchmarks/job"
 class IMDbBenchmark(Benchmark):
     """
     This class represents the IMDb benchmarks JOB and CEB.
-    We setup and compute query stats on both benchmarks.
-    TODO: It's possible to choose between JOB-only, CEB-only, or both later at function foo()
+    Query stats are computed for both benchmarks.
     """
     def __init__(self, target_benchmark, **kwargs):
         """

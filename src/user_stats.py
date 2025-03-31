@@ -9,11 +9,8 @@ class UserStats:
     Aggregates statistics on users from the Redset dataset.
     """
 
-    def __init__(self, db, override=False, verbose=False):
+    def __init__(self, db):
         self.db = db
-        self.override = override
-        self.verbose = verbose
-        self.setup()
 
     def _first_agg_step(self):
         """
@@ -109,8 +106,8 @@ class UserStats:
             > 0
         )
 
-    def setup(self):
-        if not self.override and self._is_user_stats_collected():
+    def setup(self, override):
+        if not override and self._is_user_stats_collected():
             log("User stats already collected.")
             return
         log("Collecting user stats..")
