@@ -2,7 +2,7 @@ import os
 import sys
 from src.utils import *
 from src.redbench import WORKLOADS_DIR
-from src.imdb import setup_imdb
+from src.benchmarks.imdb import setup_imdb_db
 from prettytable import PrettyTable
 from datetime import timedelta
 import time
@@ -40,7 +40,7 @@ def run_sql_cmd(duckdb_cli, db_file, sql_file):
 # Run Redbench
 def main(duckdb_cli):
     # Download and setup the IMDb database and its benchmarks JOB and CEB
-    setup_imdb(duckdb_cli)
+    setup_imdb_db(duckdb_cli)
 
     # Extract the duckdb version.
     duckdb_version = get_duckdb_version(duckdb_cli)

@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 from .benchmark import Benchmark
-from ..utils import log, get_sub_directories, draw_bar_plot, bound_num_joins
+from ..utils import *
 import re
 import queue
 import threading
@@ -17,39 +17,49 @@ CEB_DIR_PATH = "imdb/benchmarks/ceb"
 JOB_DIR_PATH = "imdb/benchmarks/job"
 
 
+def setup_imdb_db(duckdb_cli, override=False):
+    if not override and os.path.exists(IMDB_DB_FILEPATH):
+        log("IMDb already set up.")
+        return
+    os.system(f'[ -f "{IMDB_DB_FILEPATH}" ] && rm "{IMDB_DB_FILEPATH}"')
+    log("Downloading and setting up the IMDb database. This may take a few minutes.")
+    os.system("wget -q http://event.cwi.nl/da/job/imdb.tgz -O imdb.tgz")
+    os.system("mkdir -p imdb/raw_data")
+    os.system("tar -xzf imdb.tgz -C imdb/raw_data")
+    os.system("rm imdb.tgz")
+    os.system(f"{duckdb_cli} imdb/db.duckdb < imdb/schema.sql")
+    os.system(f"{duckdb_cli} imdb/db.duckdb < imdb/load.sql")
+
+
 class IMDbBenchmark(Benchmark):
     """
     This class represents the IMDb benchmarks JOB and CEB.
     Query stats are computed for both benchmarks.
     """
 
-    def __init__(self, target_benchmark, **kwargs):
+    def __init__(self, **kwargs):
         """
         target_benchmark: str
             The target benchmark to setup and compute stats on.
             Either "job", "ceb", or "ceb_job".
         """
         super().__init__(**kwargs)
-        assert target_benchmark in ["job", "ceb", "ceb_job"], (
-            f"Invalid target benchmark: {target_benchmark}. "
-            "Must be one of 'job', 'ceb', 'ceb_job'."
-        )
-        self.target_benchmark = target_benchmark
+        self.target_benchmark = kwargs.get("target_benchmark", None)
 
-    def _is_setup(self):
+    def _is_benchmarks_setup(self):
         return os.path.exists(JOB_DIR_PATH) and os.path.exists(CEB_DIR_PATH)
 
-    def setup(self, override):
-        if not override and self._is_setup():
+    def setup(self, override=False):
+        if not override and self._is_benchmarks_setup():
             log("IMDb benchmarks already set up.")
             return
         log("Setting up IMDb benchmarks JOB and CEB...")
         os.system("rm -rf imdb/benchmarks")
         os.system("tar -xzf imdb/benchmarks.tar.gz -C imdb/")
 
-    def _create_stats_tables(self, db):
+    def _create_stats_tables(self):
         for benchmark_name in ["job", "ceb", "ceb_job"]:
-            db.execute(
+            self.stats_db.execute(
                 f"""
                 CREATE OR REPLACE TABLE {benchmark_name}_stats (
                     filepath VARCHAR,
@@ -71,41 +81,6 @@ class IMDbBenchmark(Benchmark):
         # The folder name is the template (1a, 2a, 2b, ..., 11b)
         return filepath.split("/")[1]
 
-    def _process_file(self, filepath, query_stats, lock):
-        with open(filepath, "r") as file:
-            query = file.read()
-
-        # Get number of joins in the execution plan
-        tmp_query_filepath = f"tmp/{threading.get_ident()}.sql"
-        profile_filepath = f"tmp/{threading.get_ident()}_profile.json"
-        with open(tmp_query_filepath, "w") as file:
-            file.write(
-                f"""
-                PRAGMA enable_profiling='json';
-                PRAGMA profiling_output = '{profile_filepath}';
-                {query};
-            """
-            )
-        os.system(
-            f"{self.duckdb_cli} --readonly imdb/db.duckdb < {tmp_query_filepath} > /dev/null"
-        )
-        os.remove(tmp_query_filepath)
-
-        with open(profile_filepath, "r") as file:
-            profile = file.read()
-        os.remove(profile_filepath)
-
-        num_joins = profile.count('"operator_type": "HASH_JOIN"') - profile.count(
-            '"operator_type": "COLUMN_DATA_SCAN"'
-        )
-
-        stats = {
-            "num_joins": num_joins,
-            "template": self._extract_template_from_filepath(filepath),
-        }
-
-        with lock:
-            query_stats[filepath] = stats
 
     def _process_dir(self, dir_path, query_stats):
         template_to_num_joins = dict()
@@ -135,7 +110,7 @@ class IMDbBenchmark(Benchmark):
                 """
                 )
             os.system(
-                f"{self.duckdb_cli} --readonly imdb/db.duckdb < {tmp_query_filepath} > /dev/null"
+                f"{self.duckdb_cli} imdb/db.duckdb < {tmp_query_filepath} > /dev/null"
             )
             with open(profile_filepath, "r") as file:
                 profile = file.read()
@@ -152,7 +127,24 @@ class IMDbBenchmark(Benchmark):
                 "template": template,
             }
 
-    def compute_stats(self):
+    def _is_stats_setup(self):
+        return all(
+            self.stats_db.execute(
+                f"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{table}_stats'"
+            ).fetchone()[0]
+            > 0
+            for table in ["job", "ceb", "ceb_job"]
+        ) and all(
+            self.stats_db.execute(f"SELECT COUNT(*) FROM {table}_stats").fetchone()[0] > 0
+            for table in ["job", "ceb", "ceb_job"]
+        )
+
+    def compute_stats(self, override=False):
+        if not override and self._is_stats_setup():
+            log("IMDb benchmark stats already set up.")
+            return
+
+        self._create_stats_tables()
         benchmark_stats = defaultdict(dict)
 
         log("Collecting stats for JOB queries..")

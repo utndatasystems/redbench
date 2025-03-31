@@ -1,6 +1,7 @@
 from src.utils import *
 from src.redbench import WORKLOADS_DIR
 from collections import defaultdict
+from src.benchmarks.imdb import IMDbBenchmark
 import os
 
 
@@ -36,5 +37,5 @@ def unpack_workloads():
 
 if __name__ == "__main__":
     # Setup JOB and CEB
-    setup_benchmarks()
+    IMDbBenchmark().setup()
     unpack_workloads()

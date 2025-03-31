@@ -39,14 +39,15 @@ class Redset:
             and self.db.execute("SELECT COUNT(*) FROM redset").fetchone()[0] > 0
         )
 
+    def compute_stats(self, override=False):
+        # Compute user stats
+        self.user_stats = UserStats(self.db)
+        self.user_stats.setup(override)
+
     def setup(self, override=False):
         # Download and prefilter Redset
         self._setup(override)
         self._dump_stats()
-
-        # Compute user stats
-        self.user_stats = UserStats(self.db)
-        self.user_stats.setup(override)
 
     def _setup(self, override):
         if not override and self._is_setup():

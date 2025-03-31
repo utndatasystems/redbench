@@ -3,7 +3,7 @@ from src.redset import Redset
 from src.user_stats import UserStats
 from src.redbench import Redbench
 from src.utils import get_experiment_db
-from src.benchmarks.imdb import IMDbBenchmark
+from src.benchmarks.imdb import IMDbBenchmark, setup_imdb_db
 from setup import unpack_workloads
 import argparse
 
@@ -48,18 +48,23 @@ if __name__ == "__main__":
     # (Create and) connect to the experiment database
     db = get_experiment_db()
 
-    # Download the IMDb benchmarks and compute query stats
+    # Download IMDb
+    setup_imdb_db(args.duckdb_cli)
+
+    # Download JOB, CEB, and compute query stats
     imdb_benchmarks = IMDbBenchmark(
         duckdb_cli=args.duckdb_cli,
         stats_db=db,
         target_benchmark="ceb_job",
     )
     imdb_benchmarks.setup(override=args.override)
+    imdb_benchmarks.compute_stats(override=args.override)
     imdb_benchmarks.dump_plots()
 
-    # Download, prefilter, and compute user stats from Redset
+    # Download, prefilter, and compute user stats for Redset
     redset = Redset(db)
     redset.setup(override=args.override)
+    redset.compute_stats(override=args.override)
     redset.dump_plots()
 
     # Generate RedBench

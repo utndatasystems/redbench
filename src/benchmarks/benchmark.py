@@ -11,11 +11,11 @@ class Benchmark(ABC):
         assert False, "Not implemented"
 
     @abstractmethod
-    def compute_stats(self, db):
+    def get_stats(self):
         assert False, "Not implemented"
 
     @abstractmethod
-    def get_stats(self):
+    def compute_stats(self, override):
         assert False, "Not implemented"
 
     @abstractmethod
