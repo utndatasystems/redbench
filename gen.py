@@ -1,17 +1,17 @@
 import sys
 from src.redset import Redset
 from src.user_stats import UserStats
-from src.benchmark_stats import BenchmarkStats
 from src.redbench import Redbench
 from src.utils import get_experiment_db
-from src.benchmarks import setup_benchmarks
-from src.imdb import setup_imdb
+from src.benchmarks.imdb import IMDbBenchmark, setup_imdb_db
 from setup import unpack_workloads
 import argparse
 
 # Fetch the latest duckdb binary
 import os
+
 DEFAULT_DUCKDB_CLI = os.path.expanduser("~/.duckdb/cli/latest/duckdb")
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -26,13 +26,7 @@ def get_args():
         "--duckdb_cli",
         type=str,
         default=DEFAULT_DUCKDB_CLI,
-        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI})."
-    )
-    parser.add_argument(
-        "-s",
-        "--show-stats",
-        action="store_true",
-        help="Enable this flag to dump extra stats on JOB, CEB, and Redset to stdout.",
+        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI}).",
     )
     parser.add_argument(
         "-o",
@@ -54,27 +48,27 @@ if __name__ == "__main__":
     # (Create and) connect to the experiment database
     db = get_experiment_db()
 
-    # Download and setup the IMDb database and its benchmarks JOB and CEB
-    setup_imdb(args.duckdb_cli)
-    setup_benchmarks()
+    # Download IMDb
+    setup_imdb_db(args.duckdb_cli)
 
-    # Collect stats about the JOB and CEB queries, and dump plots
-    benchmark_stats = BenchmarkStats(db, verbose=args.show_stats)
-    benchmark_stats.setup()
-    benchmark_stats.dump_plots()
+    # Download JOB, CEB, and compute query stats
+    imdb_benchmarks = IMDbBenchmark(
+        duckdb_cli=args.duckdb_cli,
+        stats_db=db,
+        target_benchmark="ceb_job",
+    )
+    imdb_benchmarks.setup(override=args.override)
+    imdb_benchmarks.compute_stats(override=args.override)
+    imdb_benchmarks.dump_plots()
 
-    # Download and prefilter the Redset dataset, and dump stats
-    redset = Redset(db, override=args.override, verbose=args.show_stats)
-    redset.setup()
-    redset.dump_stats()
-
-    # Collect Redset user stats, and dump plots
-    user_stats = UserStats(db, override=args.override)
-    user_stats.setup()
-    user_stats.dump_plots()
+    # Download, prefilter, and compute user stats for Redset
+    redset = Redset(db)
+    redset.setup(override=args.override)
+    redset.compute_stats(override=args.override)
+    redset.dump_plots()
 
     # Generate RedBench
-    redbench = Redbench(db, override=True)
+    redbench = Redbench(imdb_benchmarks, db)
     redbench.generate()
 
     # Unpack Redbench workloads

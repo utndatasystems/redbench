@@ -1,9 +1,9 @@
-from src.benchmarks import setup_benchmarks
-from src.imdb import setup_imdb
 from src.utils import *
 from src.redbench import WORKLOADS_DIR
 from collections import defaultdict
+from src.benchmarks.imdb import IMDbBenchmark
 import os
+
 
 # Unpack/ inline the workload queries (convert the csv files to runnable sql files)
 def unpack_workloads():
@@ -37,5 +37,5 @@ def unpack_workloads():
 
 if __name__ == "__main__":
     # Setup JOB and CEB
-    setup_benchmarks()
+    IMDbBenchmark().setup()
     unpack_workloads()
