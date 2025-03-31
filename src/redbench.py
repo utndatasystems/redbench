@@ -165,7 +165,8 @@ class Redbench:
             # Normalize & denormalize number of joins -> get corresponding number of joins for CEB+ queries
             old_num_joins = user_query["num_joins"]
             num_joins = self.benchmark.normalize_num_joins(
-                (user_query["num_joins"] - user_stats["min_num_joins"]) / (user_stats["max_num_joins"] - user_stats["min_num_joins"])
+                (user_query["num_joins"] - user_stats["min_num_joins"])
+                / (user_stats["max_num_joins"] - user_stats["min_num_joins"])
             )
             user_query["num_joins"] = num_joins
 
@@ -198,9 +199,7 @@ class Redbench:
         readset_to_ceb_template,
     ):
         user_query_hash, num_joins = user_query["query_hash"], user_query["num_joins"]
-        user_query_readset = get_readset_from_user_query(
-            user_query
-        )
+        user_query_readset = get_readset_from_user_query(user_query)
         benchmark_query = None
         if (
             user_query_hash in query_hash_to_ceb_query

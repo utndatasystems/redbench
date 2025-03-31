@@ -22,6 +22,7 @@ class IMDbBenchmark(Benchmark):
     This class represents the IMDb benchmarks JOB and CEB.
     Query stats are computed for both benchmarks.
     """
+
     def __init__(self, target_benchmark, **kwargs):
         """
         target_benchmark: str
@@ -36,10 +37,7 @@ class IMDbBenchmark(Benchmark):
         self.target_benchmark = target_benchmark
 
     def _is_setup(self):
-        return (
-            os.path.exists(JOB_DIR_PATH) and
-            os.path.exists(CEB_DIR_PATH)
-        )
+        return os.path.exists(JOB_DIR_PATH) and os.path.exists(CEB_DIR_PATH)
 
     def setup(self, override):
         if not override and self._is_setup():
@@ -182,16 +180,20 @@ class IMDbBenchmark(Benchmark):
         )
 
     def get_stats(
-        self, bounds=(MIN_NUM_JOINS_ALLOWED, MAX_NUM_JOINS_ALLOWED), target_benchmark=None
+        self,
+        bounds=(MIN_NUM_JOINS_ALLOWED, MAX_NUM_JOINS_ALLOWED),
+        target_benchmark=None,
     ):
         target_benchmark = target_benchmark or self.target_benchmark
         benchmark_stats = {}
         for row in (
             # We order by filepath to ensure that Redbench generation is
             # deterministic even across different DuckDB versions.
-            self.stats_db.execute(f"""
+            self.stats_db.execute(
+                f"""
                 SELECT * FROM {target_benchmark}_stats ORDER BY filepath
-            """)
+            """
+            )
             .fetchdf()
             .to_dict(orient="records")
         ):
@@ -200,8 +202,7 @@ class IMDbBenchmark(Benchmark):
                 "template": row["template"],
             }
         return (
-            bound_num_joins(benchmark_stats,
-                            min_joins=bounds[0], max_joins=bounds[1])
+            bound_num_joins(benchmark_stats, min_joins=bounds[0], max_joins=bounds[1])
             if bounds is not None
             else benchmark_stats
         )
@@ -231,8 +232,7 @@ class IMDbBenchmark(Benchmark):
         map_n_joins_to_number_of_queries = defaultdict(int)
         for filepath, single_query_stats in stats.items():
             template = self._extract_template_from_filepath(filepath)
-            map_n_joins_to_templates[single_query_stats["num_joins"]].add(
-                template)
+            map_n_joins_to_templates[single_query_stats["num_joins"]].add(template)
             map_n_joins_to_number_of_queries[single_query_stats["num_joins"]] += 1
 
         self._draw_bar_plot(
@@ -244,8 +244,7 @@ class IMDbBenchmark(Benchmark):
             log_scale_y=True,
         )
         self._draw_bar_plot(
-            {k: len(map_n_joins_to_templates[k])
-             for k in map_n_joins_to_templates},
+            {k: len(map_n_joins_to_templates[k]) for k in map_n_joins_to_templates},
             "Number of joins",
             f"Number of templates",
             f"Number of templates in {benchmark_name} per number of joins",

@@ -3,7 +3,9 @@ from .user_stats import UserStats
 import src.benchmarks.imdb as benchmark
 
 
-MAX_ALLOWED_NUM_JOINS_GAP = (benchmark.MAX_NUM_JOINS_ALLOWED - benchmark.MIN_NUM_JOINS_ALLOWED) * 2 + 1
+MAX_ALLOWED_NUM_JOINS_GAP = (
+    benchmark.MAX_NUM_JOINS_ALLOWED - benchmark.MIN_NUM_JOINS_ALLOWED
+) * 2 + 1
 
 
 REDSET_FILEPATH = (
@@ -24,7 +26,6 @@ class Redset:
     def __init__(self, db):
         self.db = db
         self.user_stats = None
-
 
     def _is_setup(self):
         """
@@ -168,5 +169,7 @@ class Redset:
         log(f"Number of users in prefiltered Redset: {num_users}")
 
     def dump_plots(self):
-        assert self.user_stats is not None, "User stats not set up. Please run setup() first."
+        assert (
+            self.user_stats is not None
+        ), "User stats not set up. Please run setup() first."
         self.user_stats.dump_plots()
