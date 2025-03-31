@@ -1,5 +1,5 @@
-from .utils import IMDB_DB_FILEPATH, log
 import os
+import duckdb
 
 
 def _is_setup():
@@ -18,3 +18,7 @@ def setup_imdb(duckdb_cli, override=False):
     os.system("rm imdb.tgz")
     os.system(f"{duckdb_cli} imdb/db.duckdb < imdb/schema.sql")
     os.system(f"{duckdb_cli} imdb/db.duckdb < imdb/load.sql")
+
+def setup_tpcds(override=False, target_os="LINUX"):
+    tpc_db = duckdb.connect("tpcds/db.duckdb")
+    tpc_db.execute("CALL dsdgen(sf=1)")

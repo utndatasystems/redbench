@@ -1,8 +1,3 @@
-from .benchmark_stats import (
-    BenchmarkStats,
-    MIN_NUM_JOINS_ALLOWED,
-    MAX_NUM_JOINS_ALLOWED,
-)
 from collections import defaultdict
 import random
 import os
@@ -17,22 +12,11 @@ random.seed(0)
 WORKLOADS_DIR = "workloads"
 
 
-def normalize_num_joins(num_joins, min_num_joins, max_num_joins):
-    return (num_joins - min_num_joins) / (max_num_joins - min_num_joins)
-
-
-def denormalize_num_joins(num_joins):
-    return int(
-        num_joins * (MAX_NUM_JOINS_ALLOWED - MIN_NUM_JOINS_ALLOWED)
-        + MIN_NUM_JOINS_ALLOWED
-        + 0.5
-    )
-
-
 class Redbench:
-    def __init__(self, db=None, override=False):
+    def __init__(self, benchmark, db=None, override=False):
         self.db = db
         self.override = override
+        self.benchmark = benchmark
 
     def _plot_sampling_decision(
         self,
@@ -146,8 +130,7 @@ class Redbench:
             return
         os.system("rm -rf {WORKLOADS_DIR}")
         log("Generating Redbench..")
-        benchmark_stats = BenchmarkStats(self.db)
-        benchmark_stats = benchmark_stats.get("ceb_job")
+        benchmark_stats = self.benchmark.get_stats()
         self.num_joins_to_ceb_queries = map_num_joins_to_ceb_queries(benchmark_stats)
         # TODO: You know what? Stuff like this can be made a lot easier with a good Benchmark class.
         self.ceb_template_to_ceb_queries = map_ceb_template_to_ceb_queries(
@@ -183,12 +166,9 @@ class Redbench:
         for user_query in queries_timeline:
             # Normalize & denormalize number of joins -> get corresponding number of joins for CEB+ queries
             old_num_joins = user_query["num_joins"]
-            normalized_num_joins = normalize_num_joins(
-                user_query["num_joins"],
-                user_stats["min_num_joins"],
-                user_stats["max_num_joins"],
+            num_joins = self.benchmark.normalize_num_joins(
+                (user_query["num_joins"] - user_stats["min_num_joins"]) / (user_stats["max_num_joins"] - user_stats["min_num_joins"])
             )
-            num_joins = denormalize_num_joins(normalized_num_joins)
             user_query["num_joins"] = num_joins
 
             # Sample a single query

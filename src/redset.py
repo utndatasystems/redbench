@@ -20,6 +20,7 @@ class Redset:
         self.db = db
         self.override = override
         self.verbose = verbose
+        self.setup()
 
     def _is_setup(self):
         """

@@ -1,5 +1,3 @@
-from src.benchmarks import setup_benchmarks
-from src.imdb import setup_imdb
 from src.utils import *
 from src.redbench import WORKLOADS_DIR
 from collections import defaultdict

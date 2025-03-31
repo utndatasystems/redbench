@@ -13,6 +13,7 @@ class UserStats:
         self.db = db
         self.override = override
         self.verbose = verbose
+        self.setup()
 
     def _first_agg_step(self):
         """
