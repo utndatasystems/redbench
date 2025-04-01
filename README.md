@@ -65,3 +65,11 @@ To reproduce Redbench, i.e., re-generate the workloads from scratch:
 ```
 python gen.py --override
 ```
+
+## Licensing
+
+This project has two separate licenses:
+1. **Software** license: The software to generate the workload files is licensed under the MIT License. See [LICENSE](LICENSE). 
+2. **Data** license: The workload files are licensed under CC BY-NC 4.0. See [DATASET_LICENSE](DATASET_LICENSE).
+
+Redbench's workload files are based on statistics from [Redset](https://github.com/amazon-science/redset), released by Amazon  and licensed under [CC BY-NC 4.0](https://github.com/amazon-science/redset/blob/main/LICENSE).
