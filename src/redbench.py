@@ -142,6 +142,8 @@ class Redbench:
             for user in users_sample:
                 self._sample_benchmark_for_user(user, sampling_stats)
             self._dump_sampling_stats(group_id, users_sample, sampling_stats)
+        # Generate plots for the resulting 30 workloads
+        self._plot_workloads()
         log("Finished generating Redbench.")
 
     def _sample_benchmark_for_user(self, user_stats, sampling_stats):
@@ -357,3 +359,59 @@ class Redbench:
         with open(f"{filepath}.csv", "w") as file:
             file.write(csv_header)
             file.write("\n".join(sampled_benchmark))
+
+    def _plot_workloads(self):
+        # Get all directories under workloads/
+        workload_dirs = get_sub_directories(WORKLOADS_DIR)
+        for workload_dir in workload_dirs:
+            self.__plot_workloads(workload_dir)
+
+    def __plot_workloads(self, workload_dir):
+        data = defaultdict(lambda: defaultdict(list))
+        for filename in os.listdir(workload_dir): # TODO: Fix
+            filepath = os.path.join(workload_dir, filename)
+            filename = filename.split(".")[0].replace("_", "-")
+            if not filepath.endswith(".csv") or "stats.csv" in filepath:
+                continue
+            with open(filepath, "r") as file:
+                queries = file.readlines()[1:]
+            for query in queries:
+                query = query.strip().split(",")
+                data["redset"][filename].append(int(query[2]))
+                data["redbench"][filename].append(int(query[1]))
+            # Compute cumulative average of num joins
+            for target in ["redset", "redbench"]:
+                data[target][filename] = [sum(data[target][filename][:i]) / i for i in range(1, len(data[target][filename]))]
+
+        # Plot the data
+        _, ax = plt.subplots(figsize=(8, 6))
+        workload_idx = 0
+        colors = ["blue", "orange", "green"]
+        assert set(data["redset"].keys()) == set(data["redbench"].keys())
+        for filename, ys in data["redset"].items():
+            xs = [i / len(ys) for i in range(len(ys) + 1)]
+            ax.plot(xs, [0] + ys, label=filename, color=colors[workload_idx])
+            ax.plot(xs, [0] + data["redbench"][filename], linestyle="--", color=colors[workload_idx])
+            workload_idx += 1
+
+        from matplotlib.lines import Line2D
+        custom_lines = [
+            Line2D([0], [0], color='black', lw=2, linestyle='-'),
+            Line2D([0], [0], color='black', lw=2, linestyle='--')
+        ]
+        plt.legend(
+            custom_lines + plt.gca().get_legend_handles_labels()[0],
+            ['redbench[imdb]', 'redset'] + plt.gca().get_legend_handles_labels()[1],
+            loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=5, frameon=False,
+            columnspacing=0.8,
+        )
+
+        # ax.axhline(y=1, color="black", linestyle=":")
+        ax.set_xlabel("Query timeline")
+        ax.set_ylabel("Cumulative average #joins")
+        plt.ylim(bottom=0)
+        ax.grid(True)
+        plt.tight_layout()
+        print(workload_dir)
+        plt.savefig(f"figures/redbench/{workload_dir}.pdf", format="pdf", bbox_inches="tight", dpi=300)
+        plt.close()
