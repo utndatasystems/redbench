@@ -83,6 +83,17 @@ class Redset:
                         and T.num_joins > 0
                         and T.read_table_ids is not null
                         and T.was_cached = 0
+                        and
+                        (
+                            CASE
+                                WHEN T.read_table_ids is NULL THEN 0
+                                ELSE (
+                                    LENGTH(T.read_table_ids)
+                                    - LENGTH(REPLACE(T.read_table_ids, ',', ''))
+                                    + 1
+                                )
+                            END
+                        ) = num_joins + 1
                 ), days as (
                     SELECT generate_series as day_start
                     from generate_series('2024-03-04 08:00:00'::timestamp, '2025-01-01'::timestamp, INTERVAL 1 WEEK)

@@ -8,7 +8,7 @@ import threading
 
 # Constraints on CEB+JOB queries.
 # This is to ensure that each value of num_joins has a sufficient
-# number of distinct queries and templates.
+# number of distinct queries and query templates.
 MIN_NUM_JOINS_ALLOWED = 6
 MAX_NUM_JOINS_ALLOWED = 11
 

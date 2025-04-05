@@ -39,6 +39,7 @@ Redset is a dataset of customer query metadata, spanning over 3 months and 200 c
     * queries that do not scan any table, i.e., `read_table_ids is null`.
     * queries with no joins, i.e., `num_joins = 0`.
     * queries that were answered from result cache, i.e., `was_cached = 1`.
+    * queries with `num_joins` != |readset| - 1. We want the readset to uniquely identify `num_joins`.
 1. For each user:
     * We find the week where they issued (based on `arrival_timestamp`) the most queries. A week starts on Monday 8am and ends on Friday 5pm.
     * We only keep the queries from that week.
@@ -49,9 +50,9 @@ Redset is a dataset of customer query metadata, spanning over 3 months and 200 c
     * users where `max_num_joins == min_num_joins`.
         * Later, during the workload sampling, we will need to normalize the number of joins. Equal min and max values prevent us from normalizing (divide by 0).
 
-→ Remaining Redset queries: `63582 / 441.35M` queries.
+→ Remaining Redset queries: `65188 / 441.35M` queries.
 
-→ Remaining Redset users: `381 / 192608` users.
+→ Remaining Redset users: `340 / 192608` users.
 
 > [!NOTE]  
 > In the remainder of this README, Redset will always refer to this prefiltered version.
