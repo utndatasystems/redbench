@@ -29,6 +29,11 @@ def map_num_joins_to_ceb_queries(query_stats):
     map_n_joins_to_queries = defaultdict(list)
     for filepath, stats in query_stats.items():
         map_n_joins_to_queries[stats["num_joins"]].append(filepath)
+    
+    # Sort to ensure determinism
+    map_n_joins_to_queries = {
+        k: sorted(v) for k, v in map_n_joins_to_queries.items()
+    }
     return map_n_joins_to_queries
 
 
@@ -37,6 +42,9 @@ def map_num_joins_to_ceb_templates(query_stats):
     for _, stats in query_stats.items():
         if stats["template"] not in res[stats["num_joins"]]:
             res[stats["num_joins"]].append(stats["template"])
+
+    # Sort to ensure determinism
+    res = {k: sorted(v) for k, v in res.items()}
     return res
 
 
@@ -44,6 +52,9 @@ def map_ceb_template_to_ceb_queries(query_stats):
     res = defaultdict(list)
     for filepath, stats in query_stats.items():
         res[stats["template"]].append(filepath)
+
+    # Sort to ensure determinism
+    res = {k: sorted(v) for k, v in res.items()}
     return res
 
 

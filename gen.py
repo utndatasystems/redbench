@@ -34,16 +34,18 @@ def get_args():
         action="store_true",
         help="Enable this flag to override existing data, i.e. rerun the generation pipeline.",
     )
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = get_args()
+    args = parser.parse_args()
 
     # Check if the binary is available.
     if not os.path.isfile(args.duckdb_cli):
         print(f"Couldn't find {args.duckdb_cli}. Please install DuckDB and try again.")
         sys.exit(-1)
+
+    return args
+
+
+if __name__ == "__main__":
+    args = get_args()
 
     # (Create and) connect to the experiment database
     db = get_experiment_db()

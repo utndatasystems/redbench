@@ -6,6 +6,8 @@ imdb/benchmarks/*
 **/*.sql
 !imdb/load.sql
 !imdb/schema.sql
+tpcds/
+_dump/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

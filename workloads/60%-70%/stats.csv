@@ -1,4 +1,4 @@
 workload_type,user_id,instance_id,number_of_queries,query_repetition_rate,n_distinct_num_joins,n_distinct_readsets,n_occurrences_step_2,n_occurrences_step_5,n_occurrences_step_3_to_6,n_occurrences_step_3_to_7,n_occurrences_step_4_to_6,n_occurrences_step_4_to_7
 low_variability,12,49,11,0.636,2,2,2,2,0,0,0,0
 mid_variability,10,50,32,0.688,3,5,5,5,0,0,0,0
-high_variability,0,111,1000,0.648,7,151,23,26,22,12,195,74
+high_variability,0,111,1000,0.648,7,151,22,26,23,12,195,74

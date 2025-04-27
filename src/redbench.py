@@ -1,12 +1,10 @@
 from collections import defaultdict
+from matplotlib.lines import Line2D
 import random
 import os
 import copy
 from .utils import *
 import numpy as np
-
-
-random.seed(0)
 
 
 WORKLOADS_DIR = "workloads"
@@ -124,6 +122,7 @@ class Redbench:
         )
 
     def generate(self, override=True):
+        random.seed(0)
         if not override and self.exists():
             log("Redbench already generated.")
             return
@@ -368,7 +367,7 @@ class Redbench:
 
     def __plot_workloads(self, workload_dir):
         data = defaultdict(lambda: defaultdict(list))
-        for filename in os.listdir(workload_dir): # TODO: Fix
+        for filename in os.listdir(workload_dir):
             filepath = os.path.join(workload_dir, filename)
             filename = filename.split(".")[0].replace("_", "-")
             if not filepath.endswith(".csv") or "stats.csv" in filepath:
@@ -388,13 +387,12 @@ class Redbench:
         workload_idx = 0
         colors = ["blue", "orange", "green"]
         assert set(data["redset"].keys()) == set(data["redbench"].keys())
-        for filename, ys in data["redset"].items():
+        for filename, ys in sorted(list(data["redset"].items())):
             xs = [i / len(ys) for i in range(len(ys) + 1)]
             ax.plot(xs, [0] + ys, label=filename, color=colors[workload_idx])
             ax.plot(xs, [0] + data["redbench"][filename], linestyle="--", color=colors[workload_idx])
             workload_idx += 1
 
-        from matplotlib.lines import Line2D
         custom_lines = [
             Line2D([0], [0], color='black', lw=2, linestyle='-'),
             Line2D([0], [0], color='black', lw=2, linestyle='--')
@@ -412,6 +410,5 @@ class Redbench:
         plt.ylim(bottom=0)
         ax.grid(True)
         plt.tight_layout()
-        print(workload_dir)
-        plt.savefig(f"figures/redbench/{workload_dir}.pdf", format="pdf", bbox_inches="tight", dpi=300)
+        plt.savefig(f"figures/redbench/{workload_dir}.pdf", format="pdf", bbox_inches="tight", dpi=300, metadata={"CreationDate": None, "ModDate": None})
         plt.close()
