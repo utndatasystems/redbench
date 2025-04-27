@@ -8,12 +8,20 @@ import numpy as np
 
 
 WORKLOADS_DIR = "workloads"
+DECISION_FIGURES_DIR = "figures/redbench"
+WORKLOADS_FIGURES_DIR = "figures/workloads"
 
 
 class Redbench:
     def __init__(self, benchmark, db=None):
         self.db = db
         self.benchmark = benchmark
+        self.workloads_dir = f"{WORKLOADS_DIR}/{benchmark.get_name()}"
+        self.decision_figures_dir = DECISION_FIGURES_DIR
+        self.workloads_figures_dir = f"{WORKLOADS_FIGURES_DIR}/{benchmark.get_name()}"
+        os.makedirs(self.workloads_dir, exist_ok=True)
+        os.makedirs(self.decision_figures_dir, exist_ok=True)
+        os.makedirs(self.workloads_figures_dir, exist_ok=True)
 
     def _plot_sampling_decision(
         self,
@@ -28,7 +36,7 @@ class Redbench:
         title,
         draw_line=False,
     ):
-        os.makedirs(f"figures/redbench/{dir_name}", exist_ok=True)
+        os.makedirs(f"{self.decision_figures_dir}/{dir_name}", exist_ok=True)
         plt.scatter(
             [user[stat_1] for user in users],
             [user[stat_2] for user in users],
@@ -51,8 +59,7 @@ class Redbench:
         plt.title("\n".join(wrap(title, 60)))
         plt.legend()
         plt.grid()
-        os.makedirs(f"figures/redbench/{dir_name}", exist_ok=True)
-        plt.savefig(f"figures/redbench/{dir_name}/{group_id}.png")
+        plt.savefig(f"{self.decision_figures_dir}/{dir_name}/{group_id}.png")
         plt.close()
 
     def _sample_users(self):
@@ -110,14 +117,14 @@ class Redbench:
 
     def exists(self):
         return (
-            os.path.exists(WORKLOADS_DIR)
-            and len(os.listdir(WORKLOADS_DIR)) > 0
+            os.path.exists(self.workloads_dir)
+            and len(os.listdir(self.workloads_dir)) > 0
             and all(
                 map(
                     lambda subdir: any(
                         map(lambda file: file.endswith(".sql"), os.listdir(subdir))
                     ),
-                    get_sub_directories(WORKLOADS_DIR),
+                    get_sub_directories(self.workloads_dir),
                 )
             )
         )
@@ -127,8 +134,8 @@ class Redbench:
         if not override and self.exists():
             log("Redbench already generated.")
             return
-        os.system("rm -rf {WORKLOADS_DIR}")
-        log("Generating Redbench..")
+        os.system(f"rm -rf {self.workloads_dir}")
+        log(f"Generating redbench[{self.benchmark.get_name()}]..")
         benchmark_stats = self.benchmark.get_stats()
         self.num_joins_to_ceb_queries = map_num_joins_to_ceb_queries(benchmark_stats)
         self.ceb_template_to_ceb_queries = map_ceb_template_to_ceb_queries(
@@ -144,7 +151,7 @@ class Redbench:
             self._dump_sampling_stats(group_id, users_sample, sampling_stats)
         # Generate plots for the resulting 30 workloads
         self._plot_workloads()
-        log("Finished generating Redbench.")
+        log(f"Finished generating redbench[{self.benchmark.get_name()}].")
 
     def _sample_benchmark_for_user(self, user_stats, sampling_stats):
         # Fetch the query timeline of this user
@@ -314,7 +321,7 @@ class Redbench:
     def _dump_sampling_stats(self, group_id, users_sample, sampling_stats):
         possible_sampling_paths = ["2", "5", "3 -> 6", "3 -> 7", "4 -> 6", "4 -> 7"]
         with open(
-            f"{WORKLOADS_DIR}/{group_id}/stats.csv",
+            f"{self.workloads_dir}/{group_id}/stats.csv",
             "w",
         ) as file:
             file.write(
@@ -349,7 +356,7 @@ class Redbench:
                 file.write("\n")
 
     def _write_benchmark_file_to_disk(self, user_stats, sampled_benchmark):
-        dir_path = f"{WORKLOADS_DIR}/{user_stats['group_id']}"
+        dir_path = f"{self.workloads_dir}/{user_stats['group_id']}"
         csv_header = (
             "filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id\n"
         )
@@ -362,7 +369,7 @@ class Redbench:
 
     def _plot_workloads(self):
         # Get all directories under workloads/
-        workload_dirs = get_sub_directories(WORKLOADS_DIR)
+        workload_dirs = get_sub_directories(self.workloads_dir)
         for workload_dir in workload_dirs:
             self.__plot_workloads(workload_dir)
 
@@ -411,6 +418,6 @@ class Redbench:
         plt.ylim(bottom=0)
         ax.grid(True)
         plt.tight_layout()
-        os.makedirs(f"figures/redbench/{workload_dir}", exist_ok=True)
-        plt.savefig(f"figures/redbench/{workload_dir}.pdf", format="pdf", bbox_inches="tight", dpi=300, metadata={"CreationDate": None, "ModDate": None})
+        workload_name = workload_dir.split("/")[-1]
+        plt.savefig(f"{self.workloads_figures_dir}/{workload_name}.pdf", format="pdf", bbox_inches="tight", dpi=300, metadata={"CreationDate": None, "ModDate": None})
         plt.close()

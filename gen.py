@@ -3,6 +3,7 @@ from src.redset import Redset
 from src.user_stats import UserStats
 from src.redbench import Redbench
 from src.utils import get_experiment_db
+from src.benchmarks.tpcds import TPCDSBenchmark, setup_tpcds_db
 from src.benchmarks.imdb import IMDbBenchmark, setup_imdb_db
 from setup import unpack_workloads
 import argparse
@@ -50,18 +51,29 @@ if __name__ == "__main__":
     # (Create and) connect to the experiment database
     db = get_experiment_db()
 
-    # Download IMDb
+    # Download and setup IMDB database
     setup_imdb_db(args.duckdb_cli)
 
-    # Download JOB, CEB, and compute query stats
-    imdb_benchmarks = IMDbBenchmark(
+    # Download and setup TPC-DS database
+    setup_tpcds_db(
         duckdb_cli=args.duckdb_cli,
-        stats_db=db,
-        target_benchmark="ceb_job",
+        override=args.override,
+        scale=10
     )
-    imdb_benchmarks.setup(override=args.override)
-    imdb_benchmarks.compute_stats(override=args.override)
-    imdb_benchmarks.dump_plots()
+
+    # Define benchmarks to be used
+    benchmarks = [
+        IMDbBenchmark(
+            duckdb_cli=args.duckdb_cli,
+            stats_db=db,
+            target_benchmark="ceb_job",
+        ),
+        TPCDSBenchmark(
+            duckdb_cli=args.duckdb_cli,
+            stats_db=db,
+            scale=10,
+        ),
+    ]
 
     # Download, prefilter, and compute user stats for Redset
     redset = Redset(db)
@@ -69,9 +81,13 @@ if __name__ == "__main__":
     redset.compute_stats(override=args.override)
     redset.dump_plots()
 
-    # Generate RedBench
-    redbench = Redbench(imdb_benchmarks, db)
-    redbench.generate()
+    # Setup benchmarks and generate Redbench
+    for benchmark in benchmarks:
+        benchmark.setup(override=args.override)
+        benchmark.compute_stats(override=args.override)
+        benchmark.dump_plots()
+        redbench = Redbench(benchmark, db)
+        redbench.generate()
 
     # Unpack Redbench workloads
     unpack_workloads()
