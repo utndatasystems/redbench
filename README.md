@@ -1,6 +1,6 @@
 # Redbench
 
-Redbench is a set of 30 analytical SQL workloads that can be used to benchmark workload-driven optimizations. The workloads mimic real-world production queries from [Redset](https://github.com/amazon-science/redset), a dataset of query metadata published by Amazon Redshift, by leveraging the [Join Ordering Benchmark (JOB)](https://github.com/viktorleis/job) and the [Cardinality Estimation Benchmark (CEB)](https://github.com/learnedsystems/CEB) that run on the IMDb database.
+Redbench is a set of 30 analytical SQL workloads that can be used to benchmark workload-driven optimizations. The workloads mimic real-world production queries from [Redset](https://github.com/amazon-science/redset), a dataset of query metadata published by Amazon Redshift, by leveraging the support benchmarks [TPC-DS](https://www.tpc.org/tpcds/), [Join Ordering Benchmark (JOB)](https://github.com/viktorleis/job), and [Cardinality Estimation Benchmark (CEB)](https://github.com/learnedsystems/CEB).
 
 ## Motivation
 
@@ -8,11 +8,11 @@ Recent trends in the database community highlight the repetitive nature of real-
 
 ## Method
 
-We cluster Redset users into 10 groups based on their query repetitiveness. For each group, we sample 3 "interesting" users, and we reverse-engineer their workloads by sampling similar queries from JOB and CEB. This reverse-engineering step considers the number of joins and the set of scanned tables.
+We cluster Redset users into 10 groups based on their query repetitiveness. For each group, we sample 3 "interesting" users, and we reverse-engineer their workloads by sampling similar queries from a support benchmark. This reverse-engineering step considers the number of joins and the set of scanned tables.
 
 The resulting 30 workloads, found in the `workloads/` directory, can be used to compare the effectiveness of workload-driven optimizations.
 
-For more details on how we generate Redbench, refer to `DETAILS.md`. Summary plots for JOB, CEB, Redset, and the sampling process can be found in the `figures/` directory.
+For more details on how we generate Redbench, refer to `DETAILS.md`. Summary plots for JOB, CEB, TPC-DS, Redset, the sampling process, and the resulting benchmarks can be found in the `figures/` directory.
 
 ## Setup
 
@@ -37,6 +37,23 @@ python run.py
 The output looks as follows when run on DuckDB v1.2.1 with 48 threads on an Intel® Xeon® Gold 5318Y CPU with 128GB DDR4 RAM:
 
 ```
+Redbench[tpcds_10gb]:
++-------------------------+----------------------+
+| Query repetition bucket | Total execution time |
++-------------------------+----------------------+
+|          0%-10%         |    0:00:15.013784    |
+|         10%-20%         |    0:00:31.658575    |
+|         20%-30%         |    0:01:52.562805    |
+|         30%-40%         |    0:02:28.490707    |
+|         40%-50%         |    0:03:14.545362    |
+|         50%-60%         |    0:03:14.913141    |
+|         60%-70%         |    0:03:06.618478    |
+|         70%-80%         |    0:02:58.567623    |
+|         80%-90%         |    0:02:16.787367    |
+|         90%-100%        |    0:02:41.556895    |
++-------------------------+----------------------+
+
+Redbench[imdb]:
 +-------------------------+----------------------+
 | Query repetition bucket | Total execution time |
 +-------------------------+----------------------+

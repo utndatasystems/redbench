@@ -7,9 +7,6 @@ import re
 
 
 DB_FILEPATH = "db.duckdb"
-JOB_DIR_PATH = "imdb/benchmarks/job/"
-CEB_DIR_PATH = "imdb/benchmarks/ceb/"
-IMDB_DB_FILEPATH = "imdb/db.duckdb"
 
 
 LOGGER = logging.getLogger()
@@ -56,15 +53,6 @@ def map_ceb_template_to_ceb_queries(query_stats):
     # Sort to ensure determinism
     res = {k: sorted(v) for k, v in res.items()}
     return res
-
-
-def bound_num_joins(query_stats, min_joins, max_joins):
-    return {
-        filename: query_stats[filename]
-        for filename in query_stats
-        if query_stats[filename]["num_joins"] >= min_joins
-        and query_stats[filename]["num_joins"] <= max_joins
-    }
 
 
 def get_queries_timeline_for_user(user_key, db):

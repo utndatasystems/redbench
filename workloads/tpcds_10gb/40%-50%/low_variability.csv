@@ -1,0 +1,5 @@
+filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id
+tpcds/10gb/queries/12/999.sql,1,2,38996
+tpcds/10gb/queries/85/999.sql,2,7,295874
+tpcds/10gb/queries/85/999.sql,2,7,160228
+tpcds/10gb/queries/85/999.sql,2,7,13549
