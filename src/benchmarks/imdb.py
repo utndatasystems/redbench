@@ -16,6 +16,9 @@ MAX_NUM_JOINS_ALLOWED = 11
 CEB_DIR_PATH = "imdb/benchmarks/ceb"
 JOB_DIR_PATH = "imdb/benchmarks/job"
 
+TMP_QUERY_FILEPATH = f"tmp/query.sql"
+PROFILE_FILEPATH = f"tmp/query_profile.json"
+
 
 def setup_imdb_db(duckdb_cli, override=False):
     if not override and os.path.exists(IMDB_DB_FILEPATH):
@@ -45,6 +48,7 @@ class IMDbBenchmark(Benchmark):
         """
         super().__init__(**kwargs)
         self.target_benchmark = kwargs.get("target_benchmark", None)
+        os.system("mkdir tmp")
 
     def _is_benchmarks_setup(self):
         return os.path.exists(JOB_DIR_PATH) and os.path.exists(CEB_DIR_PATH)
@@ -99,23 +103,21 @@ class IMDbBenchmark(Benchmark):
                 query = file.read()
 
             # Get number of joins in the execution plan
-            tmp_query_filepath = f"tmp/query.sql"
-            profile_filepath = f"tmp/query_profile.json"
-            with open(tmp_query_filepath, "w") as file:
+            with open(TMP_QUERY_FILEPATH, "w") as file:
                 file.write(
                     f"""
                     PRAGMA enable_profiling='json';
-                    PRAGMA profiling_output = '{profile_filepath}';
+                    PRAGMA profiling_output = '{PROFILE_FILEPATH}';
                     {query};
                 """
                 )
             os.system(
-                f"{self.duckdb_cli} imdb/db.duckdb < {tmp_query_filepath} > /dev/null"
+                f"{self.duckdb_cli} imdb/db.duckdb < {TMP_QUERY_FILEPATH} > /dev/null"
             )
-            with open(profile_filepath, "r") as file:
+            with open(PROFILE_FILEPATH, "r") as file:
                 profile = file.read()
-            os.remove(profile_filepath)
-            os.remove(tmp_query_filepath)
+            os.remove(PROFILE_FILEPATH)
+            os.remove(TMP_QUERY_FILEPATH)
 
             num_joins = profile.count('"operator_type": "HASH_JOIN"') - profile.count(
                 '"operator_type": "COLUMN_DATA_SCAN"'

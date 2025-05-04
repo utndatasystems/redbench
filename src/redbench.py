@@ -51,6 +51,7 @@ class Redbench:
         plt.title("\n".join(wrap(title, 60)))
         plt.legend()
         plt.grid()
+        os.makedirs(f"figures/redbench/{dir_name}", exist_ok=True)
         plt.savefig(f"figures/redbench/{dir_name}/{group_id}.png")
         plt.close()
 
@@ -410,5 +411,6 @@ class Redbench:
         plt.ylim(bottom=0)
         ax.grid(True)
         plt.tight_layout()
+        os.makedirs(f"figures/redbench/{workload_dir}", exist_ok=True)
         plt.savefig(f"figures/redbench/{workload_dir}.pdf", format="pdf", bbox_inches="tight", dpi=300, metadata={"CreationDate": None, "ModDate": None})
         plt.close()
