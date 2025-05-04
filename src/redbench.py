@@ -1,9 +1,5 @@
-from .benchmark_stats import (
-    BenchmarkStats,
-    MIN_NUM_JOINS_ALLOWED,
-    MAX_NUM_JOINS_ALLOWED,
-)
 from collections import defaultdict
+from matplotlib.lines import Line2D
 import random
 import os
 import copy
@@ -11,28 +7,13 @@ from .utils import *
 import numpy as np
 
 
-random.seed(0)
-
-
 WORKLOADS_DIR = "workloads"
 
 
-def normalize_num_joins(num_joins, min_num_joins, max_num_joins):
-    return (num_joins - min_num_joins) / (max_num_joins - min_num_joins)
-
-
-def denormalize_num_joins(num_joins):
-    return int(
-        num_joins * (MAX_NUM_JOINS_ALLOWED - MIN_NUM_JOINS_ALLOWED)
-        + MIN_NUM_JOINS_ALLOWED
-        + 0.5
-    )
-
-
 class Redbench:
-    def __init__(self, db=None, override=False):
+    def __init__(self, benchmark, db=None):
         self.db = db
-        self.override = override
+        self.benchmark = benchmark
 
     def _plot_sampling_decision(
         self,
@@ -70,6 +51,7 @@ class Redbench:
         plt.title("\n".join(wrap(title, 60)))
         plt.legend()
         plt.grid()
+        os.makedirs(f"figures/redbench/{dir_name}", exist_ok=True)
         plt.savefig(f"figures/redbench/{dir_name}/{group_id}.png")
         plt.close()
 
@@ -140,24 +122,28 @@ class Redbench:
             )
         )
 
-    def generate(self):
-        if not self.override and self.exists():
+    def generate(self, override=True):
+        random.seed(0)
+        if not override and self.exists():
             log("Redbench already generated.")
             return
         os.system("rm -rf {WORKLOADS_DIR}")
         log("Generating Redbench..")
-        benchmark_stats = BenchmarkStats(self.db)
-        benchmark_stats = benchmark_stats.get("ceb_job")
+        benchmark_stats = self.benchmark.get_stats()
         self.num_joins_to_ceb_queries = map_num_joins_to_ceb_queries(benchmark_stats)
-        self.ceb_readsets_to_ceb_queries = map_ceb_readsets_to_ceb_queries(
+        self.ceb_template_to_ceb_queries = map_ceb_template_to_ceb_queries(
             benchmark_stats
         )
-        self.num_joins_to_ceb_readsets = map_num_joins_to_ceb_readsets(benchmark_stats)
+        self.num_joins_to_ceb_templates = map_num_joins_to_ceb_templates(
+            benchmark_stats
+        )
         for group_id, users_sample in self._sample_users().items():
             sampling_stats = defaultdict(lambda: defaultdict(int))
             for user in users_sample:
                 self._sample_benchmark_for_user(user, sampling_stats)
             self._dump_sampling_stats(group_id, users_sample, sampling_stats)
+        # Generate plots for the resulting 30 workloads
+        self._plot_workloads()
         log("Finished generating Redbench.")
 
     def _sample_benchmark_for_user(self, user_stats, sampling_stats):
@@ -167,35 +153,33 @@ class Redbench:
         )
 
         # Prepare maps needed across the sampling process for the user
-        ceb_readset_to_unused_queries = copy.deepcopy(self.ceb_readsets_to_ceb_queries)
-        num_joins_to_unmapped_ceb_readsets = copy.deepcopy(
-            self.num_joins_to_ceb_readsets
+        ceb_template_to_unused_queries = copy.deepcopy(self.ceb_template_to_ceb_queries)
+        num_joins_to_unmapped_ceb_templates = copy.deepcopy(
+            self.num_joins_to_ceb_templates
         )
-        assert not any([len(v) == 0 for _, v in ceb_readset_to_unused_queries.items()])
+        assert not any([len(v) == 0 for _, v in ceb_template_to_unused_queries.items()])
 
         # Iterate over all queries in the user's query timeline
         sampled_benchmark = []
         query_hash_to_ceb_query = dict()
-        user_readset_to_ceb_readset = dict()
+        readset_to_ceb_template = dict()
         for user_query in queries_timeline:
             # Normalize & denormalize number of joins -> get corresponding number of joins for CEB+ queries
             old_num_joins = user_query["num_joins"]
-            normalized_num_joins = normalize_num_joins(
-                user_query["num_joins"],
-                user_stats["min_num_joins"],
-                user_stats["max_num_joins"],
+            num_joins = self.benchmark.normalize_num_joins(
+                (user_query["num_joins"] - user_stats["min_num_joins"])
+                / (user_stats["max_num_joins"] - user_stats["min_num_joins"])
             )
-            num_joins = denormalize_num_joins(normalized_num_joins)
             user_query["num_joins"] = num_joins
 
             # Sample a single query
             benchmark_query = self._sample_single_query(
                 user_query,
                 sampling_stats,
-                ceb_readset_to_unused_queries,
-                num_joins_to_unmapped_ceb_readsets,
+                ceb_template_to_unused_queries,
+                num_joins_to_unmapped_ceb_templates,
                 query_hash_to_ceb_query,
-                user_readset_to_ceb_readset,
+                readset_to_ceb_template,
             )
             assert benchmark_query is not None
 
@@ -211,13 +195,13 @@ class Redbench:
         self,
         user_query,
         sampling_stats,
-        ceb_readset_to_unused_queries,
-        num_joins_to_unmapped_ceb_readsets,
+        ceb_template_to_unused_queries,
+        num_joins_to_unmapped_ceb_templates,
         query_hash_to_ceb_query,
-        user_readset_to_ceb_readset,
+        readset_to_ceb_template,
     ):
         user_query_hash, num_joins = user_query["query_hash"], user_query["num_joins"]
-        user_query_readset = extract_readset_from_string(user_query)
+        user_query_readset = get_readset_from_user_query(user_query)
         benchmark_query = None
         if (
             user_query_hash in query_hash_to_ceb_query
@@ -229,20 +213,22 @@ class Redbench:
 
             def step_6():
                 benchmark_query = None
-                shuffled_pool = copy.deepcopy(self.num_joins_to_ceb_readsets[num_joins])
-                random.shuffle(shuffled_pool)
-                for ceb_readset in shuffled_pool:
-                    # (6): Pick a random, already mapped, CEB readset with unused query instances
+                templates_pool = copy.deepcopy(
+                    self.num_joins_to_ceb_templates[num_joins]
+                )
+                random.shuffle(templates_pool)
+                for ceb_template in templates_pool:
+                    # (6): Pick a random, already mapped, CEB+ template with unused query instances
                     if (
-                        not ceb_readset in num_joins_to_unmapped_ceb_readsets
-                        and len(ceb_readset_to_unused_queries[ceb_readset]) > 0
+                        not ceb_template in num_joins_to_unmapped_ceb_templates
+                        and len(ceb_template_to_unused_queries[ceb_template]) > 0
                     ):
-                        benchmark_query = ceb_readset_to_unused_queries[
-                            ceb_readset
+                        benchmark_query = ceb_template_to_unused_queries[
+                            ceb_template
                         ].pop()
                         final_step = "6"
                         break
-                # (7): No already mapped CEB readset with remaining query instances
+                # (7): No already mapped CEB+ templates with remaining query instances
                 #  -> just pick a random query instance
                 if benchmark_query is None:
                     final_step = "7"
@@ -251,66 +237,73 @@ class Redbench:
                     )
                 return benchmark_query, final_step
 
-            # We have already encountered this user readset (1)
-            if user_query_readset in user_readset_to_ceb_readset:
-                corresponding_ceb_readset = user_readset_to_ceb_readset[
-                    user_query_readset
-                ]
-                remaining_ceb_query_instances_for_readset = (
-                    ceb_readset_to_unused_queries[corresponding_ceb_readset]
+            # We have already encountered this readset (1)
+            if user_query_readset in readset_to_ceb_template:
+                corresponding_ceb_template = readset_to_ceb_template[user_query_readset]
+                remaining_ceb_query_instances_for_template = (
+                    ceb_template_to_unused_queries[corresponding_ceb_template]
                 )
-                if len(remaining_ceb_query_instances_for_readset) > 0:
+                if len(remaining_ceb_query_instances_for_template) > 0:
                     used_sampling_step = "2"
                     benchmark_query = (
-                        remaining_ceb_query_instances_for_readset.pop()
+                        remaining_ceb_query_instances_for_template.pop()
                     )  # (2)
                 else:
                     benchmark_query, final_step = step_6()
                     used_sampling_step = f"3 -> {final_step}"  # (3)
-            # This user readset has never occured before (4)
+            # This readset has never occured before (4)
             else:
-                if len(num_joins_to_unmapped_ceb_readsets[num_joins]) > 0:
-                    # We still have unmapped CEB readsets
+                if len(num_joins_to_unmapped_ceb_templates[num_joins]) > 0:
+                    # We still have unmapped CEB+ templates
                     # Look for the one with the most number of remaining queries
                     best, best_value = None, 0
-                    for candidate_readset in num_joins_to_unmapped_ceb_readsets[
+                    for candidate_template in num_joins_to_unmapped_ceb_templates[
                         num_joins
                     ]:
                         this_value = len(
-                            ceb_readset_to_unused_queries[candidate_readset]
+                            ceb_template_to_unused_queries[candidate_template]
                         )
                         if this_value > best_value:
                             best_value = this_value
-                            best = candidate_readset
+                            best = candidate_template
                     if best_value > 0:
                         # We found one with some remaining queries
-                        corresponding_ceb_readset = best
+                        corresponding_ceb_template = best
                         assert (
                             len(
-                                ceb_readset_to_unused_queries[corresponding_ceb_readset]
+                                ceb_template_to_unused_queries[
+                                    corresponding_ceb_template
+                                ]
                             )
                             > 0
                         )
 
-                        # Remove the CEB readset from the list of unmapped readset for all other num_joins
+                        # Mark the CEB+ template as mapped/ remove it from the unmapped list
+                        count = 0
                         for (
                             _,
-                            unmapped_readsets_list,
-                        ) in num_joins_to_unmapped_ceb_readsets.items():
-                            if corresponding_ceb_readset in unmapped_readsets_list:
-                                unmapped_readsets_list.remove(corresponding_ceb_readset)
+                            unmapped_templates_list,
+                        ) in num_joins_to_unmapped_ceb_templates.items():
+                            if corresponding_ceb_template in unmapped_templates_list:
+                                unmapped_templates_list.remove(
+                                    corresponding_ceb_template
+                                )
+                                count += 1
+                        assert (
+                            count == 1
+                        ), f"The same template {corresponding_ceb_template} produces different num_joins"
 
-                        # Add the mapping user_readset -> CEB readset
-                        user_readset_to_ceb_readset[user_query_readset] = (
-                            corresponding_ceb_readset
+                        # Add the mapping readset -> CEB+ template
+                        readset_to_ceb_template[user_query_readset] = (
+                            corresponding_ceb_template
                         )
 
                         # Use one of the unused query instances
-                        benchmark_query = ceb_readset_to_unused_queries[
-                            corresponding_ceb_readset
+                        benchmark_query = ceb_template_to_unused_queries[
+                            corresponding_ceb_template
                         ].pop()
                         used_sampling_step = "5"
-                # All CEB readsets have already been mapped (6)
+                # All CEB+ templates have already been mapped (6)
                 if benchmark_query is None:
                     benchmark_query, final_step = step_6()
                     used_sampling_step = f"4 -> {final_step}"
@@ -366,3 +359,58 @@ class Redbench:
         with open(f"{filepath}.csv", "w") as file:
             file.write(csv_header)
             file.write("\n".join(sampled_benchmark))
+
+    def _plot_workloads(self):
+        # Get all directories under workloads/
+        workload_dirs = get_sub_directories(WORKLOADS_DIR)
+        for workload_dir in workload_dirs:
+            self.__plot_workloads(workload_dir)
+
+    def __plot_workloads(self, workload_dir):
+        data = defaultdict(lambda: defaultdict(list))
+        for filename in os.listdir(workload_dir):
+            filepath = os.path.join(workload_dir, filename)
+            filename = filename.split(".")[0].replace("_", "-")
+            if not filepath.endswith(".csv") or "stats.csv" in filepath:
+                continue
+            with open(filepath, "r") as file:
+                queries = file.readlines()[1:]
+            for query in queries:
+                query = query.strip().split(",")
+                data["redset"][filename].append(int(query[2]))
+                data["redbench"][filename].append(int(query[1]))
+            # Compute cumulative average of num joins
+            for target in ["redset", "redbench"]:
+                data[target][filename] = [sum(data[target][filename][:i]) / i for i in range(1, len(data[target][filename]))]
+
+        # Plot the data
+        _, ax = plt.subplots(figsize=(8, 6))
+        workload_idx = 0
+        colors = ["blue", "orange", "green"]
+        assert set(data["redset"].keys()) == set(data["redbench"].keys())
+        for filename, ys in sorted(list(data["redset"].items())):
+            xs = [i / len(ys) for i in range(len(ys) + 1)]
+            ax.plot(xs, [0] + ys, label=filename, color=colors[workload_idx])
+            ax.plot(xs, [0] + data["redbench"][filename], linestyle="--", color=colors[workload_idx])
+            workload_idx += 1
+
+        custom_lines = [
+            Line2D([0], [0], color='black', lw=2, linestyle='-'),
+            Line2D([0], [0], color='black', lw=2, linestyle='--')
+        ]
+        plt.legend(
+            custom_lines + plt.gca().get_legend_handles_labels()[0],
+            ['redbench[imdb]', 'redset'] + plt.gca().get_legend_handles_labels()[1],
+            loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=5, frameon=False,
+            columnspacing=0.8,
+        )
+
+        # ax.axhline(y=1, color="black", linestyle=":")
+        ax.set_xlabel("Query timeline")
+        ax.set_ylabel("Cumulative average #joins")
+        plt.ylim(bottom=0)
+        ax.grid(True)
+        plt.tight_layout()
+        os.makedirs(f"figures/redbench/{workload_dir}", exist_ok=True)
+        plt.savefig(f"figures/redbench/{workload_dir}.pdf", format="pdf", bbox_inches="tight", dpi=300, metadata={"CreationDate": None, "ModDate": None})
+        plt.close()

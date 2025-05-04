@@ -1,6 +1,12 @@
 filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id
-imdb/benchmarks/ceb/8a/8a105.sql,10,15,449905
-imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,1,6,52962
-imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,1,6,540801
-imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,1,6,46338
-imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,1,6,160201
+imdb/benchmarks/ceb/10a/ffa89001847857aea332203f58817579edf17efa.sql,1,6,9281361
+imdb/benchmarks/ceb/10a/ff7e187ff73ce227ca49c7b4791037f242cdbde6.sql,1,6,9756342
+imdb/benchmarks/ceb/10a/ffa89001847857aea332203f58817579edf17efa.sql,1,6,9597195
+imdb/benchmarks/ceb/10a/ff7e187ff73ce227ca49c7b4791037f242cdbde6.sql,1,6,9578110
+imdb/benchmarks/ceb/10a/ffa89001847857aea332203f58817579edf17efa.sql,1,6,9687782
+imdb/benchmarks/ceb/10a/ff7e187ff73ce227ca49c7b4791037f242cdbde6.sql,1,6,9060009
+imdb/benchmarks/ceb/10a/ff7e187ff73ce227ca49c7b4791037f242cdbde6.sql,1,6,9326227
+imdb/benchmarks/ceb/10a/ffa89001847857aea332203f58817579edf17efa.sql,1,6,9734717
+imdb/benchmarks/ceb/10a/ffa89001847857aea332203f58817579edf17efa.sql,1,6,8218533
+imdb/benchmarks/ceb/10a/ff5392412c047db440be1c25a9368dca0af322a6.sql,1,6,7539302
+imdb/benchmarks/ceb/8a/8a99.sql,3,11,9739352

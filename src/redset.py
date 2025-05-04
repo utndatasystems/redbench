@@ -1,7 +1,17 @@
 from .utils import *
+from .user_stats import UserStats
+import src.benchmarks.imdb as benchmark
 
 
-REDSET_FILEPATH = "https://s3.amazonaws.com/redshift-downloads/redset/provisioned/full.parquet"
+MAX_ALLOWED_NUM_JOINS_GAP = (
+    benchmark.MAX_NUM_JOINS_ALLOWED - benchmark.MIN_NUM_JOINS_ALLOWED
+) * 2 + 1
+
+
+REDSET_FILEPATH = (
+    "https://s3.amazonaws.com/redshift-downloads/redset/provisioned/full.parquet"
+)
+
 
 class Redset:
     """
@@ -13,10 +23,9 @@ class Redset:
         verbose (bool): Whether to print extra stats on the Redset dataset.
     """
 
-    def __init__(self, db, override=False, verbose=False):
+    def __init__(self, db):
         self.db = db
-        self.override = override
-        self.verbose = verbose
+        self.user_stats = None
 
     def _is_setup(self):
         """
@@ -30,8 +39,18 @@ class Redset:
             and self.db.execute("SELECT COUNT(*) FROM redset").fetchone()[0] > 0
         )
 
-    def setup(self):
-        if not self.override and self._is_setup():
+    def compute_stats(self, override=False):
+        # Compute user stats
+        self.user_stats = UserStats(self.db)
+        self.user_stats.setup(override)
+
+    def setup(self, override=False):
+        # Download and prefilter Redset
+        self._setup(override)
+        self._dump_stats()
+
+    def _setup(self, override):
+        if not override and self._is_setup():
             log("Redset already set up.")
             return
         log(
@@ -64,6 +83,17 @@ class Redset:
                         and T.num_joins > 0
                         and T.read_table_ids is not null
                         and T.was_cached = 0
+                        and
+                        (
+                            CASE
+                                WHEN T.read_table_ids is NULL THEN 0
+                                ELSE (
+                                    LENGTH(T.read_table_ids)
+                                    - LENGTH(REPLACE(T.read_table_ids, ',', ''))
+                                    + 1
+                                )
+                            END
+                        ) = num_joins + 1
                 ), days as (
                     SELECT generate_series as day_start
                     from generate_series('2024-03-04 08:00:00'::timestamp, '2025-01-01'::timestamp, INTERVAL 1 WEEK)
@@ -114,23 +144,10 @@ class Redset:
                 ), eliminated_users as (
                     select user_key
                     from redset_3
-                    where
-                        (
-                            CASE
-                                WHEN read_table_ids is NULL THEN 0
-                                ELSE (
-                                    LENGTH(read_table_ids)
-                                    - LENGTH(REPLACE(read_table_ids, ',', ''))
-                                    + 1
-                                )
-                            END
-                        ) > num_joins + 1
                     group by user_key
-                    UNION
-                    select user_key
-                    from redset_3
-                    group by user_key
-                    having max(num_joins) == min(num_joins) or max(num_joins) - min(num_joins) > 19
+                    having
+                        max(num_joins) == min(num_joins) or
+                        max(num_joins) - min(num_joins) > {MAX_ALLOWED_NUM_JOINS_GAP}
                 )
                 select *
                 from redset_3
@@ -143,7 +160,7 @@ class Redset:
             self.db.execute("SELECT * FROM redset").fetchdf().to_dict(orient="records")
         )
         for query in queries:
-            readset = ",".join(map(str, extract_readset_from_string(query)))
+            readset = ",".join(map(str, get_readset_from_user_query(query)))
             self.db.execute(
                 f"""
                 UPDATE redset
@@ -153,13 +170,18 @@ class Redset:
             """
             )
 
-    def dump_stats(self):
+    def _dump_stats(self):
         num_queries = self.db.execute("SELECT COUNT(*) FROM redset").fetchone()[0]
         log(
             f"Number of queries in prefiltered Redset: {num_queries}",
-            verbose=self.verbose,
         )
         num_users = self.db.execute(
             "SELECT COUNT(*) FROM (select user_key from redset group by user_key)"
         ).fetchone()[0]
-        log(f"Number of users in prefiltered Redset: {num_users}", verbose=self.verbose)
+        log(f"Number of users in prefiltered Redset: {num_users}")
+
+    def dump_plots(self):
+        assert (
+            self.user_stats is not None
+        ), "User stats not set up. Please run setup() first."
+        self.user_stats.dump_plots()

@@ -2,7 +2,7 @@ import os
 import sys
 from src.utils import *
 from src.redbench import WORKLOADS_DIR
-from src.imdb import setup_imdb
+from src.benchmarks.imdb import setup_imdb_db
 from prettytable import PrettyTable
 from datetime import timedelta
 import time
@@ -20,7 +20,7 @@ def parse_args():
         type=str,
         nargs="?",
         default=DEFAULT_DUCKDB_CLI,
-        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI})."
+        help=f"DuckDB binary (default: {DEFAULT_DUCKDB_CLI}).",
     )
     args = parser.parse_args()
 
@@ -31,18 +31,22 @@ def parse_args():
 
     return args
 
+
 # TIP: Simply modify this to run Redbench on your system
 def run_sql_cmd(duckdb_cli, db_file, sql_file):
     os.system(f"{duckdb_cli} --readonly {db_file} < {sql_file} > /dev/null 2>&1")
 
+
 # Run Redbench
 def main(duckdb_cli):
     # Download and setup the IMDb database and its benchmarks JOB and CEB
-    setup_imdb(duckdb_cli)
+    setup_imdb_db(duckdb_cli)
 
     # Extract the duckdb version.
     duckdb_version = get_duckdb_version(duckdb_cli)
-    assert duckdb_version is not None, "Something went wrong when extracting the version of your DuckDB binary."
+    assert (
+        duckdb_version is not None
+    ), "Something went wrong when extracting the version of your DuckDB binary."
     log(f"Running Redbench on DuckDB {duckdb_version}..")
 
     exec_times = dict()
@@ -58,7 +62,7 @@ def main(duckdb_cli):
             filepath = os.path.join(subdir, filename)
 
             # And run.
-            run_sql_cmd(duckdb_cli, 'imdb/db.duckdb', filepath)
+            run_sql_cmd(duckdb_cli, "imdb/db.duckdb", filepath)
         exec_times[bucket_name] = (time.perf_counter_ns() - start_time) / 1e9
 
     # Prepare and print the results table
@@ -67,6 +71,7 @@ def main(duckdb_cli):
     for bucket_name, exec_time in exec_times.items():
         results_table.add_row([bucket_name, str(timedelta(seconds=exec_time))])
     print(results_table)
+
 
 # And run
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import os
 from .utils import *
+from matplotlib.ticker import PercentFormatter
 
 
 class UserStats:
@@ -9,10 +10,8 @@ class UserStats:
     Aggregates statistics on users from the Redset dataset.
     """
 
-    def __init__(self, db, override=False, verbose=False):
+    def __init__(self, db):
         self.db = db
-        self.override = override
-        self.verbose = verbose
 
     def _first_agg_step(self):
         """
@@ -108,8 +107,8 @@ class UserStats:
             > 0
         )
 
-    def setup(self):
-        if not self.override and self._is_user_stats_collected():
+    def setup(self, override):
+        if not override and self._is_user_stats_collected():
             log("User stats already collected.")
             return
         log("Collecting user stats..")
@@ -117,7 +116,7 @@ class UserStats:
         self._second_agg_step()
 
     def _dump_plot_1(self, dir_path):
-        xs_txt = [f"{ratio+10}%" for ratio in range(0, 91, 10)]
+        xs_txt = [(ratio+10) / 100 for ratio in range(0, 91, 10)]
         ys = []
         ys2 = []
         ys3 = []
@@ -163,6 +162,7 @@ class UserStats:
             ys3[i] += ys3[i - 1]
 
         _, ax = plt.subplots()
+        ax.xaxis.set_major_formatter(PercentFormatter(xmax=1))
         ax.plot(xs_txt, ys, marker="o", label="Percentage of users")
         ax.plot(xs_txt, ys2, marker="o", label="Percentage of queries")
         ax.plot(xs_txt, ys3, marker="o", label="Percentage of total execution time")
