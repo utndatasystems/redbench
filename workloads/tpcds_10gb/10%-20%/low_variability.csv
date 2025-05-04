@@ -1,0 +1,12 @@
+filepath,num_joins_in_user_query,num_joins_in_benchmark_query,query_id
+tpcds/10gb/queries/85/999.sql,3,7,109973
+tpcds/10gb/queries/85/998.sql,3,7,85656
+tpcds/10gb/queries/85/997.sql,3,7,45646
+tpcds/10gb/queries/85/997.sql,3,7,195139
+tpcds/10gb/queries/85/996.sql,3,7,72479
+tpcds/10gb/queries/85/997.sql,3,7,118640
+tpcds/10gb/queries/12/999.sql,2,2,139071
+tpcds/10gb/queries/12/998.sql,2,2,122707
+tpcds/10gb/queries/12/997.sql,2,2,152979
+tpcds/10gb/queries/12/996.sql,2,2,100624
+tpcds/10gb/queries/12/995.sql,2,2,108149
